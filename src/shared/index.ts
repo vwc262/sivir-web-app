@@ -1,0 +1,10 @@
+// Barrel export — punto de entrada del código compartido de la app web.
+export * from './types'
+export * from './constants'
+export * from './mockData'
+export * from './utils'
+export * from './store/storage'
+export { useAuthStore } from './store/useAuthStore'
+export { useMapStore } from './store/useMapStore'
+export { useChatStore } from './store/useChatStore'
+export { useSettingsStore } from './store/useSettingsStore'

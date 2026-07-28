@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+@theme {
+  --color-bg-deep:     #0a0a0c;
+  --color-bg-surface:  #111114;
+  --color-bg-overlay:  rgba(255, 255, 255, 0.04);
+  --color-accent-blue: #3b82f6;
+  --color-accent-red:  #ef4444;
+  --color-accent-amber:#f59e0b;
+  --color-text-primary:#f1f5f9;
+  --color-text-muted:  #64748b;
+  --color-border:      rgba(255, 255, 255, 0.08);
+  --radius-card:       12px;
+  --font-sans:         'Inter', system-ui, sans-serif;
+}
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    background: var(--color-bg-deep);
+    color: var(--color-text-primary);
+    font-family: var(--font-sans);
+  }
+  * { box-sizing: border-box; }
+}
+
+@layer utilities {
+  .glass-card {
+    background: var(--color-bg-overlay);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+  .glow-blue  { box-shadow: 0 0 12px rgba(59,130,246,0.4); }
+  .glow-red   { box-shadow: 0 0 12px rgba(239,68,68,0.4); }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+/* Fondo cuadriculado del login */
+.grid-bg {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 48px);
+}
+
+/* Botón con efecto shimmer en hover */
+.btn-shimmer {
+  background-image: linear-gradient(
+    110deg,
+    var(--color-accent-blue) 40%,
+    #7db4ff 50%,
+    var(--color-accent-blue) 60%
+  );
+  background-size: 200% 100%;
+}
+.btn-shimmer:hover {
+  animation: shimmer 1.2s linear infinite;
+}
+
+/* Marcador de mapa con anillo pulsante */
+.map-marker {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  will-change: transform;
+}
+.map-marker::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  background: inherit;
+  opacity: 0.5;
+  animation: pulse-ring 1.6s ease-out infinite;
+  z-index: -1;
+}
+
+/* Tooltip CSS puro del sidebar */
+.nav-tooltip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  translate: 0 -50%;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #1c1c1f;
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+}
+.group\/nav:hover .nav-tooltip { opacity: 1; }
+
+/* Scrollbar discreto */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Textarea auto-resize */
+.chat-textarea { field-sizing: content; max-height: 140px; }
