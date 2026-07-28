@@ -88,14 +88,26 @@ src/
 └── pages/               # Login, callback OIDC y dashboard
 ```
 
+## Cámaras
+
+El sitio no arma la URL del stream: la calcula el core a partir de
+`VIDEO_EDGE_BASE_URL` y el `stream_id` de cada cámara, y llega ya hecha en el
+campo `hlsUrl` del inventario. Ojo con las dos URLs de una cámara: `rtspUrl` es
+el **origen** que ingesta el video-edge —el navegador no reproduce RTSP— y
+`stream_id` es cómo **sale** ese flujo del edge en HLS.
+
 ## Estado
 
-Implementado (slice 1): configuración por entorno, capa HTTP, autenticación de
-dos modos, contexto de condominio y **alertas en vivo** (WebSocket con
-reconexión, aviso emergente, panel e indicador de conexión).
+Implementado:
 
-Todavía con datos de ejemplo: mapa (unidades), cámaras y chat. El plan por
-slices está en [`docs/plan-alineacion.md`](docs/plan-alineacion.md).
+- **Slice 1** — configuración por entorno, capa HTTP, autenticación de dos
+  modos, contexto de condominio y **alertas en vivo** (WebSocket con reconexión,
+  aviso emergente, panel e indicador de conexión).
+- **Slice 2** — **cámaras reales** del inventario, agrupadas por casa, con
+  reproducción HLS.
+
+Todavía con datos de ejemplo: mapa (unidades) y chat. El plan por slices está en
+[`docs/plan-alineacion.md`](docs/plan-alineacion.md).
 
 > El token de Mapbox salió del código y ahora vive en el `.env`, que no se
 > versiona. **Conviene rotarlo**: quedó en el historial de git.

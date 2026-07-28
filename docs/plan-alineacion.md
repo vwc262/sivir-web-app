@@ -171,7 +171,7 @@ Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
 | # | Slice | Backend | Sitio |
 |---|---|---|---|
 | **1** ✅ | **Alertas en vivo** | Origen del sitio en `CORS_ALLOWED_ORIGINS` del core | Fundaciones (config, cliente HTTP, auth, contexto de condominio) + WebSocket al hub + aviso de alerta |
-| **2** | **Cámaras reales** | Mapear cámara → ruta HLS del video-edge | Inventario real por casa, reproducción HLS |
+| **2** ✅ | **Cámaras reales** | `stream_id` en el inventario + `hlsUrl` derivada en el core + CORS en el video-edge | Inventario real por casa, reproducción HLS |
 | **3** | **Telemetría** | — (ya operativo) | Lecturas por casa y sensor, con histórico |
 | **4** | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
 | **5** | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
@@ -210,6 +210,30 @@ Dos cosas que aparecieron al implementarlo:
   la resuelve con el inventario ya cargado. Si en algún momento se quiere en el
   evento, tendría que resolverla el bridge —lo que le añadiría una dependencia
   de PostgreSQL que hoy no tiene—.
+
+## 6.2. Slice 2 — entregado
+
+La página de cámaras sale del inventario real: las cámaras del condominio,
+agrupadas por casa, con su estado de alta y la reproducción HLS.
+
+**Quién construye la URL.** La calcula el core (`VIDEO_EDGE_BASE_URL` +
+`stream_id`) y viaja en el campo `hlsUrl` de cada cámara. El sitio no la arma:
+dónde vive el nodo de vídeo es configuración del despliegue, y repetida en cada
+cliente obliga a cambiarla en todos cuando se mueve. Es la misma lección de las
+URLs prefirmadas de MinIO.
+
+**`rtsp_url` y `stream_id` no son lo mismo** y conviene no confundirlos: el
+primero es el ORIGEN que ingesta el video-edge; el segundo, cómo sale ese flujo
+del edge en HLS (`/live/<stream_id>/live.m3u8`). El edge lo toma de la clave de
+publicación RTMP o de `STATIC_RTSP_CAMERAS`, así que no tiene por qué coincidir
+con el id de la cámara: por eso se guarda en el inventario y se puede editar
+desde el panel.
+
+**Hallazgo: el video-edge no enviaba CORS.** Servía el HLS con un
+`http.FileServer` pelado. La etiqueta `<video>` nativa no lo necesita, pero
+hls.js pide el manifiesto por fetch y el navegador bloqueaba la respuesta al
+venir de otro origen —que es siempre: el edge vive en el condominio, en otra
+máquina—. Se añadieron las cabeceras, con `CORS_ALLOWED_ORIGINS` para acotarlas.
 
 ---
 

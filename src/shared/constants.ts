@@ -30,26 +30,7 @@ export const ROLES = {
   cliente: 'cliente',
 } as const
 
-// ─── Cámaras IP (HLS) ────────────────────────────────────────────────
-export interface HlsConfig {
-  serverIp: string
-  port: number
-  pathTemplate: string
-}
-
-export const HLS_CONFIG: HlsConfig = {
-  serverIp: import.meta.env.VITE_HLS_SERVER_IP ?? '192.168.15.220',
-  port: Number(import.meta.env.VITE_HLS_PORT ?? 8080),
-  pathTemplate: import.meta.env.VITE_HLS_PATH_TEMPLATE ?? '/live/camara-{id_camara}/live.m3u8',
-}
-
-/** Sobrescribe la configuración HLS en runtime. */
-export function configureHls(partial: Partial<HlsConfig>): void {
-  Object.assign(HLS_CONFIG, partial)
-}
-
-export const getCameraStreamUrl = (cameraId: number): string =>
-  `http://${HLS_CONFIG.serverIp}:${HLS_CONFIG.port}${HLS_CONFIG.pathTemplate.replace(
-    '{id_camara}',
-    String(cameraId),
-  )}`
+// La URL HLS de cada cámara ya no se arma aquí: la calcula el core a partir de
+// la dirección pública del video-edge y viaja en el campo `hlsUrl` del
+// inventario. Dónde vive el nodo de vídeo es configuración del despliegue, y
+// repetirla en cada cliente obliga a cambiarla en todos cuando se mueve.

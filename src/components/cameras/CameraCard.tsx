@@ -1,10 +1,10 @@
 import { Video, VideoOff } from 'lucide-react'
+import type { Camara } from '@/shared'
 
 interface CameraCardProps {
-  cameraId: number
-  connected: boolean
+  camara: Camara
   active: boolean
-  onSelect: (id: number) => void
+  onSelect: (camara: Camara) => void
 }
 
 function StatusLED({ on }: { on: boolean }) {
@@ -19,25 +19,28 @@ function StatusLED({ on }: { on: boolean }) {
   )
 }
 
-export function CameraCard({ cameraId, connected, active, onSelect }: CameraCardProps) {
+export function CameraCard({ camara, active, onSelect }: CameraCardProps) {
   return (
     <button
-      onClick={() => onSelect(cameraId)}
-      className={`glass-card relative flex flex-col items-center justify-center gap-2 bg-[#0d0d10] py-5 transition-all cursor-pointer hover:bg-white/5 ${
+      onClick={() => onSelect(camara)}
+      title={camara.nombre}
+      className={`glass-card relative flex flex-col items-center justify-center gap-2 bg-[#0d0d10] px-2 py-5 transition-all cursor-pointer hover:bg-white/5 ${
         active ? 'ring-2 ring-blue-500' : ''
       }`}
       style={{ aspectRatio: '16 / 10' }}
     >
       <span className="absolute top-2 right-2">
-        <StatusLED on={connected} />
+        <StatusLED on={camara.enabled} />
       </span>
-      {connected ? (
+      {camara.enabled ? (
         <Video size={22} className="text-text-muted" />
       ) : (
         <VideoOff size={22} className="text-text-muted/50" />
       )}
-      <span className={`text-xs font-medium ${connected ? '' : 'text-text-muted'}`}>
-        CAM {cameraId}
+      <span
+        className={`max-w-full truncate text-xs font-medium ${camara.enabled ? '' : 'text-text-muted'}`}
+      >
+        {camara.nombre}
       </span>
     </button>
   )

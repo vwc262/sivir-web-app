@@ -30,8 +30,16 @@ export interface Camara {
   id: string
   casaId: string
   nombre: string
-  /** Origen que consume sivir-video-edge para la ingesta; el navegador reproduce HLS. */
+  /** Origen que consume sivir-video-edge para la ingesta; el navegador no reproduce RTSP. */
   rtspUrl: string
+  /** Identificador del flujo dentro del video-edge. */
+  streamId: string
+  /**
+   * Manifiesto HLS listo para reproducir. Lo calcula el core a partir de la
+   * dirección pública del video-edge: el sitio no arma esa URL, igual que no
+   * arma las URLs prefirmadas de los adjuntos. Vacío = sin edge configurado.
+   */
+  hlsUrl: string
   enabled: boolean
   createdAt: string
 }
