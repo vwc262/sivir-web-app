@@ -1,10 +1,11 @@
 # Plan de alineación del sitio de monitoreo con la plataforma Sivir
 
-Estado: **propuesta para revisión**. Nada de esto está implementado todavía.
+Estado: **decisiones cerradas**, pendiente de implementar. El trabajo está
+partido en slices verticales (§6): cada uno entrega algo funcionando de punta a
+punta, no una capa suelta.
 
 El sitio se migró tal cual desde `SIVIR-APP/web`, sin cambios funcionales, para
-partir de una base que instala y compila. Este documento describe cómo pasa de
-funcionar con datos simulados a integrarse con la plataforma.
+partir de una base que instala y compila.
 
 ---
 
@@ -16,8 +17,6 @@ funcionar con datos simulados a integrarse con la plataforma.
 - Páginas: Login, Mapa, Cámaras, Chat, Ajustes.
 - **Todo el estado sale de `src/shared/mockData.ts`. No existe ninguna llamada
   HTTP en el proyecto**: no hay cliente, ni servicios, ni configuración de API.
-- Las cámaras se resuelven por un id numérico contra una IP fija en
-  `constants.ts` (`VITE_HLS_SERVER_IP`), sin relación con el inventario real.
 - El login es local: acepta cualquier usuario y lo guarda en `localStorage`.
 
 **Lo que ya ofrece la plataforma**
@@ -25,29 +24,27 @@ funcionar con datos simulados a integrarse con la plataforma.
 | Capacidad | Servicio | Estado |
 |---|---|---|
 | Condominios, casas, sensores, cámaras, membresías | `sivir-rest-core` (PostgreSQL) | ✅ operativo |
-| Salas de chat | `sivir-rest-core` | ✅ operativo |
+| Salas de chat (no los mensajes) | `sivir-rest-core` | ⚠️ parcial |
 | Telemetría (histórica y últimas 24 h) | `sivir-rest-core` (Cassandra) | ✅ operativo |
 | **Alertas en vivo** por condominio | `sivir-realtime-hub` (WebSocket) | ✅ operativo |
+| Streaming de cámaras en HLS | `sivir-video-edge` | ✅ operativo |
 | Identidad | Keycloak + `sivir-admin-bff` | ⚠️ con bypass de desarrollo |
 
 ---
 
 ## 2. Modelo objetivo
 
-La jerarquía pedida, sobre las entidades que ya existen:
-
 ```
 Condominio                       ← existe · FALTAN coordenadas
 └── Casa (tabla `viviendas`)     ← existe · FALTAN coordenadas
     ├── Sensor                   ← existe
-    ├── Cámara IP (rtspUrl)      ← existe
+    ├── Cámara IP                ← existe
     └── Usuario (vía membresía)  ← existe
-        └── Dispositivo          ← NO EXISTE (hay que crearlo)
+        └── Dispositivo (varios) ← NO EXISTE
 ```
 
-El cambio de fondo: antes un usuario tenía **un** dispositivo y era el propio
-punto del mapa. Ahora un usuario puede tener **varios**, y el dispositivo pasa a
-ser una entidad propia colgada del usuario.
+Antes un usuario tenía **un** dispositivo y era el propio punto del mapa. Ahora
+puede tener varios (móvil, tablet, PC) y el dispositivo es una entidad propia.
 
 ### Cómo se traduce la entidad `Unit` actual
 
@@ -55,159 +52,147 @@ ser una entidad propia colgada del usuario.
 
 | Campo de `Unit` | Pasa a ser | Dónde vive |
 |---|---|---|
-| `id` | `dispositivo.id` | PostgreSQL (nueva tabla) |
-| `name` | nombre del usuario + alias del dispositivo | PostgreSQL |
+| `id` | `dispositivo.id` | PostgreSQL |
+| `name` | usuario + alias del dispositivo | PostgreSQL |
 | `phone` | atributo del dispositivo | PostgreSQL |
-| `battery` | **estado volátil** del dispositivo | Redis (último valor) |
-| `coords` | **estado volátil** del dispositivo | Redis (última posición) |
+| `battery` | valor instantáneo del dispositivo | PostgreSQL (se actualiza en sitio) |
+| `coords` | posición instantánea del dispositivo | PostgreSQL + histórico en Cassandra |
 | `isAlerted` | **derivado**: hay una alerta activa para su casa | Hub (WebSocket) |
-
-Separar el inventario (lo estable, en PostgreSQL) del estado en vivo (batería,
-posición, en Redis) evita escribir en la base relacional en cada latido de cada
-dispositivo, que es un patrón que no aguanta escala.
 
 ---
 
-## 3. Huecos que hay que cubrir en el backend
+## 3. Decisiones tomadas
 
-### 3.1 Coordenadas (bloquea el mapa)
+1. **El sitio habla directamente con `rest-core` (dominio, telemetría, historial)
+   y con `realtime-hub` (WebSocket).** No pasa por el `admin-bff`, que existe
+   solo por las credenciales privilegiadas de la Admin API de Keycloak. Basta
+   con añadir el origen del sitio a `CORS_ALLOWED_ORIGINS` del core.
 
-Ni `condominios` ni `viviendas` tienen latitud/longitud. Sin eso el mapa no
-puede dibujar la jerarquía.
+2. **Los dispositivos reportan ubicación y batería por WebSocket.** El hub los
+   recibe, `rest-core` persiste el **valor instantáneo** en una tabla que se
+   actualiza en sitio y el **histórico en Cassandra**.
 
-- Añadir `lat`/`lng` (nullable) a ambas tablas.
-- Exponerlas en `rest-core` (los CRUD ya existentes las arrastran solas).
-- Permitir editarlas desde el panel de administración.
+3. **Histórico de posiciones: sí**, en Cassandra, con el mismo patrón que la
+   telemetría de sensores (partición por entidad y fecha).
 
-### 3.2 Entidad Dispositivo (nueva)
+4. **El mapa pinta las casas y, por cada usuario, solo su dispositivo activo**,
+   aunque tenga otros registrados (tablet, PC). Hace falta un criterio de
+   "activo": el que tiene conexión abierta o, en su defecto, el de reporte más
+   reciente.
+
+5. **Chat: pipeline completo** (coincide con el flujo 1 del documento de
+   arquitectura):
+   - Todos los mensajes viajan por el **WebSocket**.
+   - Se consume **REST** para guardar el historial.
+   - **MinIO** entrega URLs prefirmadas para los adjuntos y su metadata.
+   - El hub hace **broadcast** a los usuarios en línea de esa sala.
+   - Se publica un **evento en Kafka** para las notificaciones push de los
+     usuarios sin conexión o en segundo plano.
+
+6. **Las cámaras siguen con HLS**, tal como están: es un flujo ya probado y es
+   como lo despacha el `video-edge`. El `rtspUrl` del inventario es la fuente
+   que consume el video-edge para la ingesta, **no** lo que reproduce el
+   navegador.
+
+---
+
+## 4. Huecos que hay que cubrir en el backend
+
+| Hueco | Detalle | Slice |
+|---|---|---|
+| Coordenadas | `lat`/`lng` en condominios y casas | 4 |
+| Entidad Dispositivo | Tabla nueva, CRUD en el core, alta en el panel | 5 |
+| Estado instantáneo | Tabla actualizable con posición y batería | 6 |
+| Histórico de posiciones | Tabla en Cassandra | 6 |
+| Ingesta por WebSocket | El hub hoy solo difunde; tiene que **recibir** | 6 |
+| Mensajes de chat | El core expone salas, no mensajes ni adjuntos | 7 |
+| Eventos de chat en Kafka | Topic y productor para las push | 7 |
+
+### Entidad Dispositivo (propuesta)
 
 ```
 residencial.dispositivos
-  id          TEXT PK
-  user_id     UUID  → iam.users
-  alias       TEXT        -- "Pixel de Ana"
-  plataforma  TEXT        -- android | ios | web
-  telefono    TEXT
-  push_token  TEXT        -- para FCM/APNs (doc de arquitectura, flujo 2)
-  enabled     BOOLEAN
-  created_at  TIMESTAMPTZ
-  last_seen_at TIMESTAMPTZ
+  id            TEXT PK
+  user_id       UUID → iam.users
+  alias         TEXT         -- "Pixel de Ana"
+  plataforma    TEXT         -- android | ios | web
+  telefono      TEXT
+  push_token    TEXT         -- FCM/APNs
+  enabled       BOOLEAN
+  created_at    TIMESTAMPTZ
+  last_seen_at  TIMESTAMPTZ
 ```
 
-- CRUD en `rest-core` (encaja en la mecánica genérica `crud.Repo[T]` que ya
-  existe: es una tabla más).
-- Alta y baja desde el panel de administración.
-- La casa se deduce del usuario vía su membresía; no se duplica aquí.
+La casa se deduce del usuario vía su membresía; no se duplica aquí.
 
-### 3.3 Estado en vivo de los dispositivos (ubicación y batería)
+### Estado instantáneo (propuesta)
 
-Es la pieza **más grande y la única sin ningún precedente construido**. El hub
-en Go solo difunde alertas IoT; la presencia y la ubicación existían en el hub
-.NET original y no se reimplementaron.
+```
+residencial.dispositivo_estado
+  dispositivo_id TEXT PK → dispositivos
+  lat, lng       DOUBLE PRECISION
+  battery        SMALLINT
+  online         BOOLEAN
+  updated_at     TIMESTAMPTZ
+```
 
-Hay que decidir (ver §5) cómo reportan los dispositivos y por dónde se difunde.
-Propuesta: ingesta por WebSocket contra el hub, último estado en Redis y
-difusión al canal del condominio, reutilizando el fan-out que ya funciona.
+Una fila por dispositivo, actualizada en sitio. El histórico va aparte, a
+Cassandra, particionado por dispositivo y fecha.
 
-### 3.4 Mensajes de chat
-
-`rest-core` expone **salas**, pero no mensajes ni adjuntos: eso sigue solo en el
-monolito .NET. El chat del sitio no puede cablearse del todo hasta migrarlo.
+> Nota de escala: cada latido de cada dispositivo es una escritura en
+> PostgreSQL. Con pocos dispositivos no hay problema; si el número crece,
+> conviene espaciar los reportes o agrupar las escrituras antes de persistir.
 
 ---
 
-## 4. Trabajo en el sitio web
+## 5. Trabajo transversal en el sitio
 
-### 4.1 Capa de servicios (no existe hoy)
-
-- Cliente HTTP con la URL base configurable y el token en cada petición.
-- Un módulo por dominio: `condominios`, `casas`, `sensores`, `camaras`,
-  `telemetria`, `chats`, `dispositivos`.
-- Tipos alineados con los del backend, sustituyendo los de `shared/types.ts`.
-
-### 4.2 Contexto de condominio
-
-Todo el sitio pasa a operar **dentro de un condominio**: es la clave de
-partición de la telemetría y el canal de las alertas. Se necesita un selector
-global y que las páginas cuelguen de él.
-
-### 4.3 Navegación por capas
+- **Capa de servicios**: cliente HTTP con URL base configurable y token en cada
+  petición, más un módulo por dominio. Hoy no existe nada de esto.
+- **Contexto de condominio**: todo el sitio opera dentro de un condominio, que
+  es la clave de partición de la telemetría y el canal de las alertas.
+- **Autenticación**: OIDC contra Keycloak con bypass de desarrollo, el mismo
+  patrón que el resto de la plataforma.
+- **Navegación por capas**:
 
 ```
 Condominio (selector global)
- └── Mapa: casas del condominio + dispositivos de sus usuarios
-      └── Casa → sensores, cámaras y usuarios de esa casa
+ └── Mapa: casas + dispositivo activo de cada usuario
+      └── Casa → sensores, cámaras y usuarios
            └── Usuario → sus dispositivos
 ```
 
-### 4.4 Autenticación
+---
 
-Alinear con el resto: OIDC contra Keycloak y bypass de desarrollo, el mismo
-patrón que ya usan el panel y los servicios. Sustituye al login local actual.
+## 6. Slices verticales
+
+Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
+
+| # | Slice | Backend | Sitio |
+|---|---|---|---|
+| **1** | **Alertas en vivo** | — (ya operativo) | Fundaciones (config, cliente HTTP, auth, contexto de condominio) + WebSocket al hub + aviso de alerta |
+| **2** | **Cámaras reales** | Mapear cámara → ruta HLS del video-edge | Inventario real por casa, reproducción HLS |
+| **3** | **Telemetría** | — (ya operativo) | Lecturas por casa y sensor, con histórico |
+| **4** | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
+| **5** | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
+| **6** | **Estado en vivo** | Ingesta WS en el hub → valor instantáneo + histórico en Cassandra | Dispositivo activo en el mapa, con batería |
+| **7** | **Chat completo** | Mensajes en el core, adjuntos con MinIO, broadcast en el hub, evento Kafka para push | Chat real |
+
+**Orden**: 1 → 2 → 3 → 4 → 5 → 6 → 7.
+
+El 1 va primero porque las alertas ya funcionan de punta a punta en el backend
+(verificado: MQTT → Kafka → dispatcher → Redis → hub → WebSocket en ~400 ms) y
+no dependen de ninguna entidad nueva; además arrastra las fundaciones que
+necesitan todos los demás. Del 4 en adelante entra trabajo de backend nuevo.
 
 ---
 
-## 5. Decisiones abiertas
+## 7. Notas
 
-1. **¿Contra qué backend habla el sitio?**
-   *Recomendación:* directo a `rest-core` (dominio y telemetría) y al
-   `realtime-hub` (alertas). El `admin-bff` existe solo porque necesita las
-   credenciales privilegiadas de la Admin API de Keycloak, que el monitoreo no
-   usa. Basta con añadir el origen del sitio a `CORS_ALLOWED_ORIGINS` del core.
-   La alternativa —un BFF propio de monitoreo— añade un servicio más y solo
-   compensa si el sitio necesita agregaciones que el core no da.
-
-2. **¿Cómo reportan los dispositivos ubicación y batería?**
-   Opciones: WebSocket contra el hub (encaja con lo ya construido), REST
-   periódico al core (simple, más carga) o MQTT (reutiliza la ingesta IoT, pero
-   mezcla telemetría de sensores con la de dispositivos).
-
-3. **¿Se guarda el histórico de posiciones?** Si hace falta reproducir
-   recorridos, va a Cassandra; si solo importa el "ahora", basta Redis.
-
-4. **¿El mapa muestra también las casas, o solo dispositivos?** Con coordenadas
-   en las casas se pueden pintar ambas capas; conviene confirmarlo antes de
-   diseñar la vista.
-
-5. **Chat:** ¿se espera a migrar los mensajes a Go, o el sitio se conforma de
-   momento con las salas?
-
----
-
-## 6. Fases propuestas
-
-Cada fase deja el sitio funcionando; ninguna depende de que la siguiente exista.
-
-| Fase | Contenido | Depende de |
-|---|---|---|
-| **A** | Capa de servicios + configuración de entorno + auth alineada | — |
-| **B** | **Alertas en vivo** por WebSocket: aviso visible y marcado del elemento afectado | A |
-| **C** | Cámaras reales: inventario desde el core, stream por su `rtspUrl` | A |
-| **D** | Telemetría por casa y sensor, con histórico | A |
-| **E** | Coordenadas + entidad Dispositivo + mapa jerarquizado | A, §3.1, §3.2 |
-| **F** | Estado en vivo de dispositivos (posición y batería) | E, §3.3 |
-| **G** | Chat real | A, §3.4 |
-
-**Orden recomendado: A → B → C → D**, y después E–G, que son las que arrastran
-trabajo de backend nuevo.
-
-La razón de empezar por A y B: las alertas en vivo son lo que pediste, ya
-funcionan de punta a punta en el backend (verificado: MQTT → Kafka → dispatcher
-→ Redis → hub → WebSocket en ~400 ms) y **no dependen de ninguna entidad
-nueva**. Dan valor visible sin bloquearse en las coordenadas ni en los
-dispositivos.
-
----
-
-## 7. Notas de riesgo
-
-- **Las cámaras cambian de forma de resolverse.** Hoy la URL se compone con una
-  IP fija y un id numérico; el inventario real trae una `rtspUrl` por cámara.
-  Hay que confirmar cómo llega ese stream al navegador: el `video-edge` sirve
-  HLS, así que probablemente haya que mapear cámara → ruta HLS en lugar de usar
-  el RTSP directamente, que el navegador no reproduce.
-- **El token de Mapbox está en el código** (`constants.ts`). Debería pasar a
-  variable de entorno antes de publicar el repo.
-- **Multi-dispositivo cambia la semántica del mapa**: un usuario con tres
-  dispositivos son tres puntos, o uno agregado. Conviene decidirlo al diseñar
-  la vista.
+- **El token de Mapbox está en el código** (`src/shared/constants.ts`) y ahora
+  vive en un repo. Debería pasar a variable de entorno (se hace en el slice 1,
+  con el resto de la configuración).
+- **Multi-dispositivo y mapa**: al pintar solo el dispositivo activo hace falta
+  fijar el criterio de actividad (conexión abierta o último reporte).
+- **Cámaras**: el navegador no reproduce RTSP; el `rtspUrl` del inventario es
+  para la ingesta del video-edge. La reproducción sigue siendo HLS.
