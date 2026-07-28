@@ -6,6 +6,7 @@ import {
   TACTICAL_UNITS,
   MAPBOX_TOKEN,
   MAPBOX_STYLE,
+  MAPBOX_ENABLED,
   OSM_TILE_URL,
   OSM_ATTRIBUTION,
   DEFAULT_CENTER,
@@ -28,8 +29,10 @@ const OSM_STYLE: StyleSpecification = {
   layers: [{ id: 'osm-dark', type: 'raster', source: 'osm-dark' }],
 }
 
+// Sin token de Mapbox el estilo no carga y el mapa saldría en blanco: se cae al
+// proveedor OSM, que no requiere credenciales.
 const styleFor = (provider: MapProvider): string | StyleSpecification =>
-  provider === 'mapbox' ? MAPBOX_STYLE : OSM_STYLE
+  provider === 'mapbox' && MAPBOX_ENABLED ? MAPBOX_STYLE : OSM_STYLE
 
 export function MapView() {
   const containerRef = useRef<HTMLDivElement>(null)

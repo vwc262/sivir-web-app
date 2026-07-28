@@ -170,7 +170,7 @@ Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
 
 | # | Slice | Backend | Sitio |
 |---|---|---|---|
-| **1** | **Alertas en vivo** | — (ya operativo) | Fundaciones (config, cliente HTTP, auth, contexto de condominio) + WebSocket al hub + aviso de alerta |
+| **1** ✅ | **Alertas en vivo** | Origen del sitio en `CORS_ALLOWED_ORIGINS` del core | Fundaciones (config, cliente HTTP, auth, contexto de condominio) + WebSocket al hub + aviso de alerta |
 | **2** | **Cámaras reales** | Mapear cámara → ruta HLS del video-edge | Inventario real por casa, reproducción HLS |
 | **3** | **Telemetría** | — (ya operativo) | Lecturas por casa y sensor, con histórico |
 | **4** | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
@@ -184,6 +184,32 @@ El 1 va primero porque las alertas ya funcionan de punta a punta en el backend
 (verificado: MQTT → Kafka → dispatcher → Redis → hub → WebSocket en ~400 ms) y
 no dependen de ninguna entidad nueva; además arrastra las fundaciones que
 necesitan todos los demás. Del 4 en adelante entra trabajo de backend nuevo.
+
+---
+
+## 6.1. Slice 1 — entregado
+
+Fundaciones (`src/shared/config.ts`, `api/`, `auth/`, `realtime/`, `hooks/`),
+sesión con condominio, WebSocket al hub con reconexión y alertas visibles
+(aviso emergente, panel e indicador de conexión).
+
+Verificado contra la plataforma en marcha: `MQTT → mqtt-bridge → Kafka →
+dispatcher → Redis → hub → WebSocket → navegador`, con aislamiento por
+condominio (una alerta de `cond-bcn-01` no llega al sitio si está en
+`cond-gdl-02`) y reconexión automática al reiniciar el hub.
+
+Dos cosas que aparecieron al implementarlo:
+
+- **El bypass de desarrollo no puede ser un marcador.** El hub, aun en modo dev,
+  parsea el JWT y rechaza el handshake si no porta `condominio_id`. El sitio
+  acuña un token real (`shared/auth/devToken.ts`), equivalente en el navegador a
+  `tools/devtoken` del hub.
+- **Las alertas de MQTT no traen la casa.** El payload de telemetría solo lleva
+  condominio y sensor, y el `mqtt-bridge` no consulta el inventario, así que
+  `vivienda_id` viaja vacío. La relación sensor→casa la tiene el core y el sitio
+  la resuelve con el inventario ya cargado. Si en algún momento se quiere en el
+  evento, tendría que resolverla el bridge —lo que le añadiría una dependencia
+  de PostgreSQL que hoy no tiene—.
 
 ---
 

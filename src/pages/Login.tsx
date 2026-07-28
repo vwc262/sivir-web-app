@@ -2,12 +2,12 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { ShieldCheck, User, KeyRound } from 'lucide-react'
-import { useAuthStore } from '@/shared'
+import { AUTH_MODE, ROLES, useAuthStore, useSession } from '@/shared'
 
 type Mode = 'login' | 'register'
 
 export default function Login() {
-  const user = useAuthStore((s) => s.user)
+  const session = useSession()
   const login = useAuthStore((s) => s.login)
   const navigate = useNavigate()
   const [mode, setMode] = useState<Mode>('login')
@@ -15,15 +15,25 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  if (user) return <Navigate to="/dashboard/map" replace />
+  if (session) return <Navigate to="/dashboard/map" replace />
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+
+    // Con Keycloak las credenciales se introducen en el propio proveedor: aquí
+    // solo se dispara la redirección del flujo OIDC.
+    if (AUTH_MODE === 'keycloak') {
+      await login({ username: '' })
+      return
+    }
+
     if (!username.trim() || !password.trim()) {
       setError('Ingresa usuario y contraseña')
       return
     }
-    login(username.trim())
+    // El condominio no se elige aquí: se resuelve al cargar el dashboard con el
+    // listado que sirve el core.
+    await login({ username: username.trim(), role: ROLES.cliente })
     navigate('/dashboard/map', { replace: true })
   }
 
@@ -43,9 +53,28 @@ export default function Login() {
           <div className="text-center">
             <h1 className="text-xl font-bold tracking-wide">SIVIR</h1>
             <p className="text-xs text-text-muted">Sistema de Comando Táctico</p>
+            {AUTH_MODE === 'dev' && (
+              <p className="mt-2 inline-block rounded border border-accent-amber/40 bg-accent-amber/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-accent-amber uppercase">
+                modo dev · sin Keycloak
+              </p>
+            )}
           </div>
         </div>
 
+        {AUTH_MODE === 'keycloak' ? (
+          <form onSubmit={handleSubmit}>
+            <p className="mb-6 text-center text-xs text-text-muted">
+              El acceso se valida en Keycloak. Serás redirigido al proveedor de identidad.
+            </p>
+            <button
+              type="submit"
+              className="btn-shimmer w-full rounded-lg py-2.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 cursor-pointer"
+            >
+              Acceder con Keycloak
+            </button>
+          </form>
+        ) : (
+          <>
         <div className="mb-6 grid grid-cols-2 rounded-xl bg-black/30 p-1">
           {(
             [
@@ -111,6 +140,8 @@ export default function Login() {
             {mode === 'login' ? 'Acceder al sistema' : 'Crear cuenta'}
           </button>
         </form>
+          </>
+        )}
       </div>
     </div>
   )

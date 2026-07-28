@@ -8,6 +8,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  // 5174 para no chocar con el panel de administración (sivir-admin-console),
+  // que ocupa el 5173. El origen tiene que estar en CORS_ALLOWED_ORIGINS del core.
+  server: {
+    port: 5174,
+    strictPort: true,
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Map, MessageSquare, Video, Settings, LogOut, UserCircle2 } from 'lucide-react'
-import { useAuthStore, TACTICAL_UNITS } from '@/shared'
+import { useAuthStore, useSession, useUnreadAlertCount } from '@/shared'
 
 const NAV_ITEMS = [
   { to: '/dashboard/map', icon: Map, label: 'Mapa' },
@@ -10,10 +10,12 @@ const NAV_ITEMS = [
 ] as const
 
 export function Sidebar() {
-  const user = useAuthStore((s) => s.user)
+  const session = useSession()
   const logout = useAuthStore((s) => s.logout)
   const navigate = useNavigate()
-  const alertCount = TACTICAL_UNITS.filter((u) => u.isAlerted).length
+  // Alertas reales del hub, no datos de ejemplo.
+  const alertCount = useUnreadAlertCount()
+  const user = session?.username ?? ''
 
   return (
     <aside className="hidden h-full w-[72px] flex-col items-center border-r border-border bg-bg-surface py-4 md:flex">
@@ -55,8 +57,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={() => {
-            logout()
-            navigate('/', { replace: true })
+            void logout().then(() => navigate('/', { replace: true }))
           }}
           className="group/nav relative flex h-11 w-11 items-center justify-center rounded-xl text-text-muted transition-colors hover:bg-accent-red/15 hover:text-accent-red cursor-pointer"
         >

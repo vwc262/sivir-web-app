@@ -1,7 +1,9 @@
-export const MAPBOX_TOKEN =
-  'pk.eyJ1IjoidWxpc2VzZ20tMDIiLCJhIjoiY2xzNTEwaXZ5MTE2NzJwcGJhNmdmM2MyMSJ9.xIk1PS-VJzW_WZGiv24Vow'
+import { CONFIG } from './config'
 
-export const MAPBOX_STYLE = 'mapbox://styles/ulisesgm-02/cmr2n441b004l01s7138421fm'
+// El token y el estilo de Mapbox son configuración de despliegue, no código:
+// viven en el `.env` (ver `.env.example`).
+export const MAPBOX_TOKEN = CONFIG.mapbox.token
+export const MAPBOX_STYLE = CONFIG.mapbox.style
 
 // Fallback OSM: CartoDB Dark Matter (tiles ráster)
 export const OSM_TILE_URL =
@@ -20,6 +22,12 @@ export const STORAGE_KEYS = {
   session: 'sivir_session',
   provider: 'sivir_map_provider',
   settings: 'sivir_settings',
+} as const
+
+/** Roles de la plataforma (claim `roles` del token). */
+export const ROLES = {
+  admin: 'admin',
+  cliente: 'cliente',
 } as const
 
 // ─── Cámaras IP (HLS) ────────────────────────────────────────────────
