@@ -1,5 +1,5 @@
 export const MAPBOX_TOKEN =
-  ''
+  'pk.eyJ1IjoidWxpc2VzZ20tMDIiLCJhIjoiY2xzNTEwaXZ5MTE2NzJwcGJhNmdmM2MyMSJ9.xIk1PS-VJzW_WZGiv24Vow'
 
 export const MAPBOX_STYLE = 'mapbox://styles/ulisesgm-02/cmr2n441b004l01s7138421fm'
 
