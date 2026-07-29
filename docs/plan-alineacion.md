@@ -352,6 +352,92 @@ conservando su última posición. Es donde se le vio por última vez, que es jus
 lo que interesa cuando alguien deja de reportar; quitarlo afirmaría que no está
 en ninguna parte.
 
+## 6.7. Slice 7 — entregado
+
+Chat completo: WebSocket para lo que pasa ahora, REST para lo que ya pasó,
+MinIO para los adjuntos, y un worker nuevo (`sivir-push-worker`) para quien no
+estaba mirando la pantalla.
+
+### Camino de un mensaje de texto
+
+```
+app --chat.message--> hub ──1─> rest-core (persistir: historial)
+                          ├─2─> difusión a la sala (miembros conectados)
+                          └─3─> Kafka chat.messages.v1 --> push-worker --> FCM/APNs
+```
+
+El orden importa: se persiste **antes** de difundir. Si se difundiera primero y
+la escritura fallara, los conectados verían un mensaje que desaparecería al
+recargar, porque nunca llegó a existir en el historial.
+
+**Los adjuntos no viajan por el WebSocket.** Van por HTTP directo al core, que
+habla con MinIO. Retransmitir binarios por la conexión de tiempo real obligaría
+a bufferearlos en memoria y los pondría a competir con los mensajes de control
+(pings, alertas, estado de dispositivos) que comparten el mismo socket.
+
+### Un mensaje no es solo para quien lo escribió
+
+El hub ahora agrupa las conexiones por **dos** criterios, no uno: por
+condominio (alertas, estado de dispositivos) y por **sala de chat**. Difundir
+un mensaje al condominio entero se lo habría entregado a quien no pertenece a
+la conversación.
+
+La pertenencia a una sala se resuelve **una vez, en el handshake**, contra el
+core — no se confía en lo que declare el propio mensaje. Escribir en una sala
+ajena se rechaza en el servidor, no solo se oculta en la interfaz.
+
+### Presencia: la pieza que faltaba para las notificaciones
+
+Para saber a quién notificar hacía falta saber quién *no* estaba viendo el
+mensaje ya. El hub anota en Redis quién tiene una conexión abierta
+(`rt:presence:{userId}`), con TTL que se refresca mientras dura la sesión y
+caduca solo si el proceso muere sin poder limpiarla — dejar a alguien marcado
+como "conectado" para siempre equivaldría a no notificarle nunca más.
+
+### `sivir-push-worker`: por qué es un repo aparte y no más código en el hub
+
+Consume `chat.messages.v1` **y** `iot.alerts.v1` — el mismo topic de alertas
+que ya lee `event-dispatcher`, pero en su **propio grupo de consumo**. Con el
+mismo `group.id` los dos se repartirían los mensajes en vez de recibirlos
+ambos: la mitad de las alertas llegarían por WebSocket y la otra mitad como
+push, en lugar de que cada alerta recorra los dos caminos completos.
+
+La regla que aplica en los dos casos (chat y alertas) es la misma: notifica
+quien **debía verlo** y **no estaba conectado**. Al emisor no se le notifica su
+propio mensaje; a un dispositivo sin token tampoco, porque está dado de alta
+pero su app nunca se registró.
+
+No participa en el camino en vivo a propósito. Si se cae, los conectados siguen
+recibiéndolo todo por WebSocket — solo se pierden las notificaciones de los
+ausentes, y con commit-tras-procesar en Kafka, al volver retoma donde se quedó.
+
+El proveedor de desarrollo (`PUSH_PROVIDER=log`) registra la notificación en
+vez de enviarla: enviar de verdad exige credenciales de FCM/APNs, pero el resto
+del camino —qué evento, a quién, con qué texto— es idéntico y ya se puede
+verificar.
+
+### Verificado de punta a punta
+
+Con el `chatprobe` (herramienta nueva del hub, un segundo participante de
+consola) y el sitio abierto como Ana:
+
+- Mensaje escrito en el sitio → persistido en el core con el `senderId`
+  correcto → devuelto por la difusión con el nombre del emisor.
+- Mensaje de Luis por consola, con Ana conectada → entregado por WebSocket,
+  **sin** push a Ana (ya lo vio).
+- Mismo mensaje, con Ana desconectada → sí generó push.
+- Mensaje de Ana con Luis desconectado → **sin** push, porque el dispositivo de
+  Luis está deshabilitado en el seed — la regla "solo dispositivos habilitados
+  con token" se ejerció con datos reales, no fue necesario simularla.
+
+### Un fallo que se llevó por delante el chat completo
+
+El identificador de un mensaje es un Snowflake de 64 bits. Serializado como
+número JSON supera los 2^53 que un cliente JavaScript representa con
+exactitud: el navegador lo redondeaba en silencio y dos mensajes distintos
+podían acabar “con el mismo id”. Se corrigió sirviéndolo como cadena
+(`json:"id,string"`) en el core.
+
 ---
 
 ## 7. Notas

@@ -8,6 +8,7 @@
 // que el sitio no puede contradecirlo.
 
 import { create } from 'zustand'
+import { apiList } from '../api/http'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { AUTH_MODE, type AuthMode } from '../config'
 import { ROLES, STORAGE_KEYS } from '../constants'
@@ -45,6 +46,27 @@ interface AuthState {
   setSession: (session: Session) => void
 }
 
+/**
+ * Busca el identificador de un usuario por su nombre.
+ *
+ * Solo en modo dev: si el core no responde o el nombre no existe se sigue
+ * adelante con un identificador inventado, porque el bypass debe funcionar
+ * aunque no haya backend —solo que entonces el usuario no pertenece a ninguna
+ * sala ni tiene dispositivos—.
+ */
+async function buscarUsuario(username: string): Promise<string | null> {
+  try {
+    const { data } = await apiList<{ id: string; username: string }>('/usuarios', {
+      username,
+      _start: 0,
+      _end: 1,
+    })
+    return data[0]?.id ?? null
+  } catch {
+    return null
+  }
+}
+
 /** Indica si la sesión existe y su token sigue vigente. */
 export function isSessionValid(session: Session | null): session is Session {
   return session !== null && session.expiresAt > Date.now()
@@ -62,7 +84,11 @@ export const useAuthStore = create<AuthState>()(
           return
         }
 
-        const userId = `dev-${username}`
+        // La identidad de desarrollo se ata a un usuario real del dominio
+        // cuando el nombre coincide con uno dado de alta. Importa: las salas de
+        // chat, las membresías y los dispositivos cuelgan de ese identificador,
+        // y con uno inventado el usuario no pertenecería a nada.
+        const userId = (await buscarUsuario(username)) ?? `dev-${username}`
         const { token, expiresAt } = mintDevToken({ userId, username, roles: [role], condominioId })
         set({
           session: {

@@ -2,7 +2,6 @@
 export * from './types'
 export * from './config'
 export * from './constants'
-export * from './mockData'
 export * from './utils'
 export * from './api'
 export * from './hooks'
@@ -23,5 +22,9 @@ export {
   dispositivoActivoPorUsuario,
 } from './store/useDevicesStore'
 export { useMapStore } from './store/useMapStore'
-export { useChatStore } from './store/useChatStore'
+export {
+  useChatStore,
+  useMensajesActivos,
+  useMensajesSinLeer,
+} from './store/useChatStore'
 export { useSettingsStore } from './store/useSettingsStore'

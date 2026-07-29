@@ -1,19 +1,5 @@
-export interface ChatMessage {
-  id: string
-  senderId: string
-  text?: string
-  imageUrl?: string
-  timestamp: string     // ISO 8601
-  status: 'sent' | 'delivered' | 'read'
-}
-
-export interface Conversation {
-  id: string
-  contactName: string
-  messages: ChatMessage[]
-  unreadCount: number
-}
-
+// Tipos propios de la interfaz. Los del dominio viven en `api/types.ts`,
+// espejo de lo que sirve el core.
 export type MapProvider = 'mapbox' | 'osm'
 export type AlertType = 'discreta' | 'critica'
 

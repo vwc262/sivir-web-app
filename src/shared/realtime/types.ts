@@ -80,6 +80,36 @@ export function asDeviceState(raw: unknown): DeviceState | null {
   return msg as DeviceState
 }
 
+/** Tipo de mensaje de chat (`events/chat.go`). */
+export const EVENT_CHAT_MESSAGE = 'chat.message'
+
+/**
+ * Mensaje de chat tal como lo difunde el hub.
+ *
+ * `message_id` es una cadena porque es un Snowflake de 64 bits: como número
+ * perdería precisión en JavaScript y dos mensajes distintos podrían acabar con
+ * el mismo identificador.
+ */
+export interface ChatMessageEvent {
+  type: string
+  room_id: string
+  message_id: string
+  sender_id: string
+  sender_name: string
+  content: string
+  created_at: string
+  /** Identificador que puso el emisor, para reconocer su propio mensaje. */
+  client_id?: string
+}
+
+/** Reconoce un mensaje de chat. */
+export function asChatMessage(raw: unknown): ChatMessageEvent | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const msg = raw as Partial<ChatMessageEvent>
+  if (msg.type !== EVENT_CHAT_MESSAGE || !msg.room_id) return null
+  return msg as ChatMessageEvent
+}
+
 /** Reconoce la instantánea inicial del condominio. */
 export function asDeviceSnapshot(raw: unknown): DeviceSnapshot | null {
   if (typeof raw !== 'object' || raw === null) return null

@@ -1,17 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft } from 'lucide-react'
-import { useChatStore } from '@/shared'
+import { ChevronLeft, Users } from 'lucide-react'
+import { initials, useAuthStore, useChatStore, useMensajesActivos } from '@/shared'
 import { MessageBubble } from './MessageBubble'
 import { ChatInput } from './ChatInput'
-
-function initials(name: string): string {
-  return name
-    .split(' ')
-    .map((w) => w[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-}
 
 interface ChatWindowProps {
   onBack?: () => void
@@ -19,22 +10,26 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ onBack, className = '' }: ChatWindowProps) {
-  const conversations = useChatStore((s) => s.conversations)
-  const activeConversationId = useChatStore((s) => s.activeConversationId)
+  const salas = useChatStore((s) => s.salas)
+  const salaActiva = useChatStore((s) => s.salaActiva)
+  const error = useChatStore((s) => s.error)
+  const mensajes = useMensajesActivos()
+  const userId = useAuthStore((s) => s.session?.userId ?? '')
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const conversation = conversations.find((c) => c.id === activeConversationId)
-  const messageCount = conversation?.messages.length ?? 0
+  const sala = salas.find((s) => s.id === salaActiva)
 
   useEffect(() => {
     const el = scrollRef.current
     if (el) el.scrollTop = el.scrollHeight
-  }, [messageCount, activeConversationId])
+  }, [mensajes.length, salaActiva])
 
-  if (!conversation) {
+  if (!sala) {
     return (
-      <div className={`h-full flex-1 items-center justify-center text-sm text-text-muted md:flex ${className}`}>
+      <div
+        className={`h-full flex-1 items-center justify-center text-sm text-text-muted md:flex ${className}`}
+      >
         Selecciona una conversación
       </div>
     )
@@ -53,23 +48,40 @@ export function ChatWindow({ onBack, className = '' }: ChatWindowProps) {
           </button>
         )}
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-blue/15 text-xs font-bold text-accent-blue">
-          {initials(conversation.contactName)}
+          {initials(sala.name)}
         </div>
         <div>
-          <h3 className="text-sm font-semibold">{conversation.contactName}</h3>
-          <p className="flex items-center gap-1.5 text-xs text-emerald-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> En línea
+          <h3 className="text-sm font-semibold">{sala.name}</h3>
+          <p className="flex items-center gap-1.5 text-xs text-text-muted">
+            <Users size={12} /> {sala.membersCount} miembros
           </p>
         </div>
       </header>
 
+      {error && (
+        <p className="border-b border-accent-red/40 bg-accent-red/10 px-4 py-2 text-xs text-accent-red">
+          {error}
+        </p>
+      )}
+
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
-        {conversation.messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} onImageClick={setLightboxUrl} />
-        ))}
+        {mensajes.length === 0 ? (
+          <p className="pt-6 text-center text-xs text-text-muted">
+            Todavía no hay mensajes en esta sala.
+          </p>
+        ) : (
+          mensajes.map((mensaje) => (
+            <MessageBubble
+              key={mensaje.id}
+              mensaje={mensaje}
+              propio={mensaje.senderId === userId}
+              onImageClick={setLightboxUrl}
+            />
+          ))
+        )}
       </div>
 
-      <ChatInput conversationId={conversation.id} />
+      <ChatInput />
 
       {lightboxUrl && (
         <div

@@ -9,8 +9,9 @@ import { getAccessToken } from '../auth/token'
 import { useAlertsStore } from '../store/useAlertsStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useDevicesStore } from '../store/useDevicesStore'
-import { HubClient } from './hubClient'
-import { asDeviceSnapshot, asDeviceState, toLiveAlert } from './types'
+import { useChatStore } from '../store/useChatStore'
+import { HubClient, registrarHub } from './hubClient'
+import { asChatMessage, asDeviceSnapshot, asDeviceState, toLiveAlert } from './types'
 
 export function useHubConnection(): void {
   const userId = useAuthStore((s) => s.session?.userId ?? '')
@@ -64,14 +65,22 @@ export function useHubConnection(): void {
           }
 
           const estado = asDeviceState(raw)
-          if (estado && estado.condominio_id === condominioId) aplicar(estado)
+          if (estado && estado.condominio_id === condominioId) {
+            aplicar(estado)
+            return
+          }
+
+          const mensaje = asChatMessage(raw)
+          if (mensaje) useChatStore.getState().recibir(mensaje)
         },
       })
       client.connect()
+      registrarHub(client)
     })
 
     return () => {
       cancelled = true
+      registrarHub(null)
       client?.close()
     }
   }, [userId, condominioId])

@@ -3,6 +3,19 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 El trabajo avanza por slices verticales; ver `docs/plan-alineacion.md`.
 
+## [No publicado] — 2026-07-30
+
+### Añadido
+- **Slice 7 · Chat real**: sustituye las conversaciones de ejemplo. El envío va
+  por el WebSocket del hub (se pinta al volver por la difusión, no de forma
+  optimista: así el emisor ve exactamente lo que quedó guardado); el historial
+  y los adjuntos, por HTTP al core. Indicador cuando la conexión de mensajería
+  está caída, sin perder lo escrito.
+
+### Eliminado
+- `mockData.ts`, `MOCK_CONVERSATIONS` y los tipos `ChatMessage`/`Conversation`
+  de ejemplo. Con el chat real, ya no queda ningún dato de ejemplo en el sitio.
+
 ## [No publicado] — 2026-07-29
 
 ### Añadido

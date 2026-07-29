@@ -35,6 +35,17 @@ export class HubClient {
     this.open()
   }
 
+  /**
+   * Envía un mensaje al hub. Devuelve false si la conexión no está abierta:
+   * quien llama decide qué hacer, que no es lo mismo encolar un mensaje de chat
+   * que descartarlo.
+   */
+  enviar(mensaje: unknown): boolean {
+    if (this.socket?.readyState !== WebSocket.OPEN) return false
+    this.socket.send(JSON.stringify(mensaje))
+    return true
+  }
+
   /** Cierra la conexión y cancela cualquier reintento pendiente. */
   close(): void {
     this.closedByUs = true
@@ -94,4 +105,23 @@ export class HubClient {
       if (!this.closedByUs) this.open()
     }, jittered)
   }
+}
+
+/**
+ * Conexión activa del proceso.
+ *
+ * El hook `useHubConnection` la instala al conectarse y la retira al cerrarse.
+ * Existe porque enviar un mensaje no es un efecto de React: lo dispara el
+ * usuario desde cualquier pantalla, y pasar el cliente por props o por contexto
+ * hasta el cuadro de texto solo añadiría ceremonia.
+ */
+let activo: HubClient | null = null
+
+export function registrarHub(cliente: HubClient | null): void {
+  activo = cliente
+}
+
+/** Envía por la conexión activa. False si no hay conexión abierta. */
+export function enviarPorHub(mensaje: unknown): boolean {
+  return activo?.enviar(mensaje) ?? false
 }
