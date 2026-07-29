@@ -173,7 +173,7 @@ Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
 | **1** ✅ | **Alertas en vivo** | Origen del sitio en `CORS_ALLOWED_ORIGINS` del core | Fundaciones (config, cliente HTTP, auth, contexto de condominio) + WebSocket al hub + aviso de alerta |
 | **2** ✅ | **Cámaras reales** | `stream_id` en el inventario + `hlsUrl` derivada en el core + CORS en el video-edge | Inventario real por casa, reproducción HLS |
 | **3** ✅ | **Telemetría** | Dos correcciones en el informe (ver 6.3) | Lecturas por casa y sensor, con histórico |
-| **4** | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
+| **4** ✅ | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
 | **5** | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
 | **6** | **Estado en vivo** | Ingesta WS en el hub → valor instantáneo + histórico en Cassandra | Dispositivo activo en el mapa, con batería |
 | **7** | **Chat completo** | Mensajes en el core, adjuntos con MinIO, broadcast en el hub, evento Kafka para push | Chat real |
@@ -257,6 +257,29 @@ Dos fallos del core que salieron al consumirlo de verdad:
 - **Las lecturas del informe salían sin casa.** El listado resolvía la vivienda
   contra el inventario y el informe no, así que la misma lectura tenía casa por
   un endpoint y no por el otro.
+
+## 6.4. Slice 4 — entregado
+
+El mapa dibuja las casas del condominio activo y, al pulsar una, abre su
+detalle: sensores con su última lectura, cámaras, residentes y las alertas
+vivas de esa casa. Es el segundo nivel de la jerarquía condominio → casa →
+equipos; el tercero (dispositivos) llega en los slices 5 y 6.
+
+Las casas con alerta viva se pintan en rojo. Eso funciona porque la alerta ya
+trae la vivienda desde el bridge: sin aquella corrección, el mapa no habría
+podido relacionar la alerta con ninguna casa.
+
+**`lat`/`lng` son nulos, no cero.** La coordenada 0,0 existe —está en el
+Atlántico— y usarla como valor por defecto habría puesto en el mismo punto real
+todo lo que aún no se ha geolocalizado. El core las expone como `null`, el panel
+las deja vacías y el sitio avisa de cuántas casas no puede dibujar en lugar de
+inventarles una posición.
+
+Encuadre: el centro del condominio si está capturado; si no, el conjunto de sus
+casas; y si tampoco, se queda donde estaba.
+
+Con esto salieron del sitio las unidades de ejemplo (`TACTICAL_UNITS`) y el tipo
+`Unit`. Solo queda de ejemplo el chat, pendiente del slice 7.
 
 ---
 

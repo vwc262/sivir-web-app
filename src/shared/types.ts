@@ -1,12 +1,3 @@
-export interface Unit {
-  id: string
-  name: string
-  phone: string
-  battery: number       // 0–100
-  isAlerted: boolean
-  coords: [number, number]  // [lng, lat]
-}
-
 export interface ChatMessage {
   id: string
   senderId: string

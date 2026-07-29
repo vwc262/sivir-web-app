@@ -1,12 +1,7 @@
-import type { Unit, Conversation } from './types'
-
-export const TACTICAL_UNITS: Unit[] = [
-  { id: '1', name: 'Usuario 1', phone: '+52 55 1234 5678', battery: 34, isAlerted: true,  coords: [-99.1250, 19.4380] },
-  { id: '2', name: 'Usuario 2', phone: '+52 55 2345 6789', battery: 88, isAlerted: false, coords: [-99.1400, 19.4250] },
-  { id: '3', name: 'Usuario 3', phone: '+52 55 3456 7890', battery: 12, isAlerted: false, coords: [-99.1350, 19.4450] },
-  { id: '4', name: 'Usuario 4', phone: '+52 55 4567 8901', battery: 55, isAlerted: true,  coords: [-99.1180, 19.4300] },
-  { id: '5', name: 'Usuario 5', phone: '+52 55 5678 9012', battery: 95, isAlerted: false, coords: [-99.1280, 19.4200] },
-]
+// Solo quedan datos de ejemplo del chat, pendiente del slice 7. El mapa ya
+// dibuja las casas reales del condominio, así que las unidades de ejemplo
+// desaparecieron con ellas.
+import type { Conversation } from './types'
 
 const today = new Date()
 const at = (hoursAgo: number, minutes = 0): string => {

@@ -6,6 +6,12 @@ export interface Condominio {
   id: string
   nombre: string
   direccion: string
+  /**
+   * Centro del condominio. `null` cuando no se ha capturado: el core no usa 0,0
+   * como valor por defecto porque es un punto real en el Atlántico.
+   */
+  lat: number | null
+  lng: number | null
   createdAt: string
 }
 
@@ -14,6 +20,8 @@ export interface Casa {
   id: string
   condominioId: string
   identificador: string
+  lat: number | null
+  lng: number | null
   createdAt: string
 }
 

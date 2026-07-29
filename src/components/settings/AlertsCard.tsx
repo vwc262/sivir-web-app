@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom'
 import { BellRing, MapPin, Siren, X } from 'lucide-react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
-import { type AlertType, TACTICAL_UNITS } from '@/shared'
+import { type AlertType } from '@/shared'
 
-const PREVIEW_UNIT = TACTICAL_UNITS[0]!
+// Datos de muestra de la previsualización: sirven para ver el estilo del aviso,
+// no representan ninguna alerta real.
+const PREVIEW = { casa: 'Casa A-101', sensor: 'Puerta principal', zona: 'Residencial Barcelona' }
 
 export function AlertsCard() {
   const [alertType, setAlertType] = useState<AlertType>('discreta')
@@ -54,9 +56,9 @@ export function AlertsCard() {
             <BellRing size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">{PREVIEW_UNIT.name}</p>
+            <p className="text-sm font-semibold">{PREVIEW.casa}</p>
             <p className="flex items-center gap-1 truncate text-xs text-text-muted">
-              <MapPin size={12} /> Zona Centro, CDMX
+              <MapPin size={12} /> {PREVIEW.sensor}
             </p>
           </div>
           <button
@@ -87,16 +89,16 @@ export function AlertsCard() {
             <p className="mb-6 text-sm text-text-muted">Señal de emergencia recibida</p>
             <div className="mb-6 space-y-2 text-left text-sm">
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-text-muted">Usuario</span>
-                <span className="font-semibold">{PREVIEW_UNIT.name}</span>
+                <span className="text-text-muted">Casa</span>
+                <span className="font-semibold">{PREVIEW.casa}</span>
               </div>
               <div className="flex justify-between border-b border-border pb-2">
-                <span className="text-text-muted">Batería</span>
-                <span className="font-semibold">{PREVIEW_UNIT.battery}%</span>
+                <span className="text-text-muted">Sensor</span>
+                <span className="font-semibold">{PREVIEW.sensor}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">Ubicación</span>
-                <span className="font-semibold">Zona Centro, CDMX</span>
+                <span className="text-text-muted">Condominio</span>
+                <span className="font-semibold">{PREVIEW.zona}</span>
               </div>
             </div>
             <Button variant="danger" className="w-full" onClick={() => setPreview(null)}>

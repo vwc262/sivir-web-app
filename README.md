@@ -107,8 +107,10 @@ Implementado:
   reproducción HLS.
 - **Slice 3** — **telemetría** por casa y sensor: última lectura de cada sensor,
   agregados, evolución e histórico por rango de fechas.
+- **Slice 4** — **mapa** con las casas del condominio, resaltando las que tienen
+  alerta viva, y panel de detalle con sensores, cámaras y residentes.
 
-Todavía con datos de ejemplo: mapa (unidades) y chat. El plan por slices está en
+Todavía con datos de ejemplo: el chat. El plan por slices está en
 [`docs/plan-alineacion.md`](docs/plan-alineacion.md).
 
 > El token de Mapbox salió del código y ahora vive en el `.env`, que no se

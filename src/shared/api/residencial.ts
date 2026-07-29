@@ -31,6 +31,11 @@ export function listMembresias(condominioId?: string): Promise<ListResult<Membre
   return apiList<Membresia>('/membresias', { ...PAGE, condominioId })
 }
 
+/** Espejo local de las identidades; el core no filtra usuarios por condominio. */
+export function listUsuarios(): Promise<ListResult<Usuario>> {
+  return apiList<Usuario>('/usuarios', { ...PAGE, _sort: 'username', _order: 'asc' })
+}
+
 export const getCondominio = (id: string) => apiGet<Condominio>(`/condominios/${id}`)
 export const getCasa = (id: string) => apiGet<Casa>(`/casas/${id}`)
 export const getSensor = (id: string) => apiGet<Sensor>(`/sensores/${id}`)
