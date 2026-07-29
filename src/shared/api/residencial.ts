@@ -1,7 +1,7 @@
 // Servicios del dominio residencial contra sivir-rest-core.
 
 import { apiGet, apiList, type ListResult } from './http'
-import type { Camara, Casa, Condominio, Membresia, Sensor, Usuario } from './types'
+import type { Camara, Casa, Condominio, Dispositivo, Membresia, Sensor, Usuario } from './types'
 
 /** Página amplia: el inventario de un condominio es pequeño y cabe de una vez. */
 const PAGE = { _start: 0, _end: 200 } as const
@@ -34,6 +34,11 @@ export function listMembresias(condominioId?: string): Promise<ListResult<Membre
 /** Espejo local de las identidades; el core no filtra usuarios por condominio. */
 export function listUsuarios(): Promise<ListResult<Usuario>> {
   return apiList<Usuario>('/usuarios', { ...PAGE, _sort: 'username', _order: 'asc' })
+}
+
+/** Dispositivos, de un usuario concreto o de todos. */
+export function listDispositivos(userId?: string): Promise<ListResult<Dispositivo>> {
+  return apiList<Dispositivo>('/dispositivos', { ...PAGE, userId, _sort: 'alias', _order: 'asc' })
 }
 
 export const getCondominio = (id: string) => apiGet<Condominio>(`/condominios/${id}`)

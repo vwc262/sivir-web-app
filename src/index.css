@@ -67,23 +67,87 @@
   animation: shimmer 1.2s linear infinite;
 }
 
-/* Marcador de mapa con anillo pulsante */
-.map-marker {
-  position: relative;
-  width: 18px;
-  height: 18px;
-  border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.9);
+/* ── Marcadores del mapa ──────────────────────────────────────────────────
+   Una forma por tipo de entidad (ver components/map/markers.ts): el
+   condominio es un edificio discreto, la casa una vivienda con su etiqueta y
+   el dispositivo un círculo, que es la convención de "alguien está aquí". */
+.map-pin {
+  /* Mapbox posiciona sus marcadores con `position: absolute` sobre el lienzo.
+     Declararlo aquí también: como ambas clases tienen la misma especificidad,
+     gana la última hoja cargada —esta—, y con `relative` el marcador se
+     quedaría en el flujo del documento, lejos de su coordenada. */
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
   will-change: transform;
 }
-.map-marker::after {
+.map-pin svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  padding: 5px;
+  box-sizing: content-box;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: var(--color-bg-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.map-pin__label {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  background: rgba(17, 17, 20, 0.85);
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.map-pin--casa svg {
+  color: var(--color-accent-blue);
+  border-color: rgba(59, 130, 246, 0.9);
+}
+
+/* El condominio es el contenedor, no el objeto de interés: no compite con las
+   casas ni acepta clic. */
+.map-pin--condominio {
+  cursor: default;
+  opacity: 0.75;
+}
+.map-pin--condominio svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-muted);
+  border-color: rgba(255, 255, 255, 0.5);
+  border-radius: 9999px;
+}
+
+.map-pin--dispositivo svg {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.9);
+  border-radius: 9999px;
+}
+
+/* Alerta viva: color de aviso y anillo pulsante alrededor del icono. */
+.map-pin--alerta svg {
+  color: var(--color-accent-red);
+  border-color: rgba(239, 68, 68, 0.95);
+}
+.map-pin--alerta::after {
   content: '';
   position: absolute;
-  inset: -4px;
-  border-radius: 9999px;
-  background: inherit;
-  opacity: 0.5;
+  left: 0;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  border-radius: 10px;
+  background: var(--color-accent-red);
+  opacity: 0.45;
   animation: pulse-ring 1.6s ease-out infinite;
   z-index: -1;
 }

@@ -60,6 +60,24 @@ export interface Usuario {
   createdAt: string
 }
 
+/**
+ * Aparato de un usuario (móvil, tablet, PC). Un usuario puede tener varios.
+ *
+ * No lleva casa: se deduce del usuario a través de su membresía.
+ */
+export interface Dispositivo {
+  id: string
+  userId: string
+  alias: string
+  plataforma: 'android' | 'ios' | 'web'
+  telefono: string
+  pushToken: string
+  enabled: boolean
+  createdAt: string
+  /** Último contacto conocido; `null` si nunca ha reportado. */
+  lastSeenAt: string | null
+}
+
 export interface Membresia {
   id: string
   userId: string

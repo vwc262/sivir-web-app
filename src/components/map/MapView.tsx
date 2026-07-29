@@ -19,6 +19,7 @@ import {
 } from '@/shared'
 import { MapControls } from './MapControls'
 import { ProviderToggle } from './ProviderToggle'
+import { crearMarcadorCasa, crearMarcadorCondominio } from './markers'
 
 const OSM_STYLE: StyleSpecification = {
   version: 8,
@@ -84,7 +85,15 @@ export function MapView() {
     // Clic fuera de un marcador: cerrar el panel.
     map.on('click', () => useMapStore.getState().selectCasa(null))
 
+    // El mapa se crea antes de que el layout asigne su tamaño definitivo, y
+    // Mapbox se queda con las medidas del primer instante: el centro acaba
+    // desplazado respecto de lo que se ve. Observar el contenedor lo mantiene
+    // cuadrado, y de paso cubre los cambios de tamaño de la ventana.
+    const observer = new ResizeObserver(() => map.resize())
+    observer.observe(containerRef.current)
+
     return () => {
+      observer.disconnect()
       map.remove()
       mapRef.current = null
       appliedProvider.current = null
@@ -115,8 +124,8 @@ export function MapView() {
     // centroCondominio se deriva de condominios + condominioId.
   }, [condominioId, condominios, casas])
 
-  // Marcadores de las casas. Se rehacen cuando cambia el inventario o el estado
-  // de alerta: son pocos y así el color siempre refleja lo último recibido.
+  // Marcadores. Se rehacen cuando cambia el inventario o el estado de alerta:
+  // son pocos y así lo que se ve refleja siempre lo último recibido.
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -124,16 +133,20 @@ export function MapView() {
     for (const marker of markersRef.current) marker.remove()
     markersRef.current = []
 
+    // El centro del condominio va debajo de las casas: es referencia, no foco.
+    if (condominio && centroCondominio) {
+      markersRef.current.push(
+        new mapboxgl.Marker({ element: crearMarcadorCondominio(condominio.nombre) })
+          .setLngLat(centroCondominio)
+          .addTo(map),
+      )
+    }
+
     for (const casa of casas.filter(tieneCoordenadas)) {
-      const enAlerta = casasEnAlerta.has(casa.id)
-      const el = document.createElement('div')
-      el.className = 'map-marker'
-      el.style.background = enAlerta ? '#ef4444' : '#3b82f6'
-      el.setAttribute('aria-label', `Casa ${casa.identificador}`)
-      el.title = `Casa ${casa.identificador}`
-      el.addEventListener('click', (e) => {
-        e.stopPropagation()
-        useMapStore.getState().selectCasa(casa.id)
+      const el = crearMarcadorCasa({
+        identificador: casa.identificador,
+        enAlerta: casasEnAlerta.has(casa.id),
+        onClick: () => useMapStore.getState().selectCasa(casa.id),
       })
 
       markersRef.current.push(
@@ -145,9 +158,9 @@ export function MapView() {
       for (const marker of markersRef.current) marker.remove()
       markersRef.current = []
     }
-    // casasEnAlerta se deriva de las alertas; depender de su contenido evita
-    // rehacer los marcadores en cada render.
-  }, [casas, alertas])
+    // casasEnAlerta se deriva de las alertas y centroCondominio de condominios:
+    // se depende de las fuentes para no rehacer los marcadores en cada render.
+  }, [casas, alertas, condominios, condominioId])
 
   useEffect(() => {
     const map = mapRef.current

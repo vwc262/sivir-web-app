@@ -1,4 +1,4 @@
-import { X, Radio, Video, Users, AlertTriangle, MapPinOff } from 'lucide-react'
+import { X, Radio, Video, Users, Smartphone, AlertTriangle, MapPinOff } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
   formatMessageTime,
@@ -128,9 +128,28 @@ export function CasaDetailPanel() {
 
           <Seccion icon={<Users size={13} />} titulo="Residentes" total={residentes.length}>
             {residentes.map((residente) => (
-              <li key={residente.userId} className="flex items-center justify-between gap-2 py-1.5">
-                <p className="min-w-0 truncate text-xs">{residente.nombre}</p>
-                <span className="shrink-0 text-[11px] text-text-muted">{residente.rol}</span>
+              <li key={residente.userId} className="py-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-xs">{residente.nombre}</p>
+                  <span className="shrink-0 text-[11px] text-text-muted">{residente.rol}</span>
+                </div>
+                {/* Los dispositivos cuelgan del usuario, no de la casa: un
+                    residente puede tener varios y se listan bajo su nombre. */}
+                {residente.dispositivos.length > 0 && (
+                  <ul className="mt-1 flex flex-col gap-0.5 pl-3">
+                    {residente.dispositivos.map((dispositivo) => (
+                      <li
+                        key={dispositivo.id}
+                        className="flex items-center gap-1.5 text-[11px] text-text-muted"
+                      >
+                        <Smartphone size={11} className="shrink-0" />
+                        <span className="min-w-0 truncate">{dispositivo.alias}</span>
+                        <span className="shrink-0">· {dispositivo.plataforma}</span>
+                        {!dispositivo.enabled && <span className="shrink-0">· inactivo</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </Seccion>

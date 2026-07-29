@@ -109,6 +109,9 @@ Implementado:
   agregados, evolución e histórico por rango de fechas.
 - **Slice 4** — **mapa** con las casas del condominio, resaltando las que tienen
   alerta viva, y panel de detalle con sensores, cámaras y residentes.
+- **Slice 5** — **dispositivos** de cada residente en el detalle de la casa, y
+  marcadores con forma propia por tipo de entidad (condominio, casa,
+  dispositivo).
 
 Todavía con datos de ejemplo: el chat. El plan por slices está en
 [`docs/plan-alineacion.md`](docs/plan-alineacion.md).

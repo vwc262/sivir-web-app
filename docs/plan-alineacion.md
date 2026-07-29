@@ -174,7 +174,7 @@ Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
 | **2** ✅ | **Cámaras reales** | `stream_id` en el inventario + `hlsUrl` derivada en el core + CORS en el video-edge | Inventario real por casa, reproducción HLS |
 | **3** ✅ | **Telemetría** | Dos correcciones en el informe (ver 6.3) | Lecturas por casa y sensor, con histórico |
 | **4** ✅ | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
-| **5** | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
+| **5** ✅ | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
 | **6** | **Estado en vivo** | Ingesta WS en el hub → valor instantáneo + histórico en Cassandra | Dispositivo activo en el mapa, con batería |
 | **7** | **Chat completo** | Mensajes en el core, adjuntos con MinIO, broadcast en el hub, evento Kafka para push | Chat real |
 
@@ -280,6 +280,33 @@ casas; y si tampoco, se queda donde estaba.
 
 Con esto salieron del sitio las unidades de ejemplo (`TACTICAL_UNITS`) y el tipo
 `Unit`. Solo queda de ejemplo el chat, pendiente del slice 7.
+
+## 6.5. Slice 5 — entregado
+
+Entidad **Dispositivo**: tabla propia, CRUD en el core y alta desde el panel.
+Un usuario puede tener varios (móvil, tablet, PC), que es justo lo que el modelo
+anterior no admitía.
+
+**No lleva casa.** Se deduce del usuario a través de su membresía; duplicarla en
+el dispositivo abriría la puerta a que ambas dejaran de coincidir. El precio es
+que para saber qué aparatos hay en una vivienda hay que pasar por sus
+residentes, y así lo hace el detalle de la casa en el mapa.
+
+`last_seen_at` queda preparado para el slice 6 y nace nulo: "nunca ha reportado"
+no es lo mismo que "reportó en el origen del tiempo".
+
+### Marcadores por tipo
+
+El mapa mezcla entidades de la jerarquía, así que cada una tiene su forma:
+edificio discreto para el condominio, vivienda con etiqueta para la casa y
+círculo para el dispositivo —la convención de "alguien está aquí"—, que entrará
+en juego en el slice 6. Las casas con alerta viva pasan a rojo y pulsan.
+
+Al hacerlo salió un fallo de posicionamiento que venía del proyecto original: la
+clase del marcador declaraba `position: relative` y pisaba el `absolute` que
+Mapbox necesita, así que los marcadores no caían sobre su coordenada. Se corrigió
+y se añadió un `ResizeObserver`, porque el mapa se crea antes de que el layout
+fije el tamaño del contenedor.
 
 ---
 
