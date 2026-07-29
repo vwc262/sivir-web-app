@@ -112,6 +112,9 @@ Implementado:
 - **Slice 5** — **dispositivos** de cada residente en el detalle de la casa, y
   marcadores con forma propia por tipo de entidad (condominio, casa,
   dispositivo).
+- **Slice 6** — **estado en vivo**: los dispositivos reportan ubicación y
+  batería por el WebSocket y el mapa los sigue, atenuando a los que pierden la
+  señal.
 
 Todavía con datos de ejemplo: el chat. El plan por slices está en
 [`docs/plan-alineacion.md`](docs/plan-alineacion.md).

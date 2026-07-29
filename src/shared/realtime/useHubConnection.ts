@@ -8,8 +8,9 @@ import { CONFIG } from '../config'
 import { getAccessToken } from '../auth/token'
 import { useAlertsStore } from '../store/useAlertsStore'
 import { useAuthStore } from '../store/useAuthStore'
+import { useDevicesStore } from '../store/useDevicesStore'
 import { HubClient } from './hubClient'
-import { toLiveAlert } from './types'
+import { asDeviceSnapshot, asDeviceState, toLiveAlert } from './types'
 
 export function useHubConnection(): void {
   const userId = useAuthStore((s) => s.session?.userId ?? '')
@@ -17,10 +18,12 @@ export function useHubConnection(): void {
 
   useEffect(() => {
     const { setStatus, push, clear } = useAlertsStore.getState()
+    const { aplicar, aplicarVarios, limpiar } = useDevicesStore.getState()
 
-    // Las alertas son del condominio que se está monitoreando: al cambiar de
-    // condominio, dejar las anteriores en pantalla induciría a error.
+    // Alertas y dispositivos son del condominio que se está monitoreando: al
+    // cambiar de condominio, dejar los anteriores en pantalla induciría a error.
     clear()
+    limpiar()
 
     // Sin condominio no hay canal al que suscribirse: el hub rechaza el
     // handshake si el token no lo porta.
@@ -44,10 +47,24 @@ export function useHubConnection(): void {
         token,
         onStatus: setStatus,
         onMessage: (raw) => {
+          // Por la misma conexión llegan dos cosas: alertas y estado de los
+          // dispositivos. Se reparten por tipo.
           const alert = toLiveAlert(raw)
-          // El hub ya segmenta por condominio; el filtro es una salvaguarda por
-          // si llega algo de otro canal tras un cambio de condominio.
-          if (alert && alert.condominioId === condominioId) push(alert)
+          if (alert) {
+            // El hub ya segmenta por condominio; el filtro es una salvaguarda
+            // por si llega algo de otro canal tras un cambio de condominio.
+            if (alert.condominioId === condominioId) push(alert)
+            return
+          }
+
+          const snapshot = asDeviceSnapshot(raw)
+          if (snapshot) {
+            aplicarVarios(snapshot.devices)
+            return
+          }
+
+          const estado = asDeviceState(raw)
+          if (estado && estado.condominio_id === condominioId) aplicar(estado)
         },
       })
       client.connect()

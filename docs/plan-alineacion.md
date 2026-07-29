@@ -175,7 +175,7 @@ Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
 | **3** ✅ | **Telemetría** | Dos correcciones en el informe (ver 6.3) | Lecturas por casa y sensor, con histórico |
 | **4** ✅ | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
 | **5** ✅ | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
-| **6** | **Estado en vivo** | Ingesta WS en el hub → valor instantáneo + histórico en Cassandra | Dispositivo activo en el mapa, con batería |
+| **6** ✅ | **Estado en vivo** | Ingesta WS en el hub → caché + valor instantáneo + histórico | Dispositivo activo en el mapa, con batería |
 | **7** | **Chat completo** | Mensajes en el core, adjuntos con MinIO, broadcast en el hub, evento Kafka para push | Chat real |
 
 **Orden**: 1 → 2 → 3 → 4 → 5 → 6 → 7.
@@ -307,6 +307,50 @@ clase del marcador declaraba `position: relative` y pisaba el `absolute` que
 Mapbox necesita, así que los marcadores no caían sobre su coordenada. Se corrigió
 y se añadió un `ResizeObserver`, porque el mapa se crea antes de que el layout
 fije el tamaño del contenedor.
+
+## 6.6. Slice 6 — entregado
+
+Los dispositivos reportan ubicación y batería por el WebSocket y el mapa los
+pinta en vivo, con su porcentaje. Un punto por usuario: quien tiene móvil,
+tablet y PC registrados sigue siendo una persona en un sitio.
+
+### Camino del dato
+
+```
+app --device.report--> hub ──1─> Redis (caché)
+                           ├─2─> rest-core ──> PostgreSQL (valor instantáneo)
+                           │                └─> Cassandra   (rastro de posiciones)
+                           └─3─> device.state a los clientes del condominio
+```
+
+**Write-through, en ese orden.** La caché primero porque es de donde se sirve el
+dato caliente —el estado que se difunde y el que recibe un cliente al
+conectarse—; la base después, para que sobreviva a un reinicio. Si la base
+falla, el estado sigue siendo correcto para quien lo consulta ahora y solo se
+pierde la durabilidad de ese punto: degradar así es preferible a rechazar el
+reporte.
+
+Y la otra cara: si la caché está vacía —hub recién arrancado, estados
+caducados—, la instantánea se rellena desde la base en lugar de dejar el mapa en
+blanco hasta el siguiente reporte.
+
+### Criterio de "activo": híbrido, porque una sola señal engaña
+
+| Señal | Detecta | Tarda |
+|---|---|---|
+| Cierre del WebSocket (keep-alive) | conexión cortada | al instante |
+| Ausencia de reportes | app congelada o sin permiso de GPS, con el socket vivo | `intervalo × reportes tolerados` |
+
+El keep-alive no ve al dispositivo que responde pings pero ha dejado de reportar;
+la frecuencia de reportes sí, pero tardaría hasta el umbral en enterarse de una
+desconexión limpia. Con las dos, cada avería se ve por su camino más rápido. Las
+métricas distinguen la señal que lo detectó
+(`device_offline_total{motivo="desconexion"|"sin_reportes"}`).
+
+**Un dispositivo caído no se borra del mapa**: se atenúa y se marca "sin señal",
+conservando su última posición. Es donde se le vio por última vez, que es justo
+lo que interesa cuando alguien deja de reportar; quitarlo afirmaría que no está
+en ninguna parte.
 
 ---
 

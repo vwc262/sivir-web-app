@@ -5,6 +5,7 @@ import {
   sensorTypeLabel,
   useAlertsStore,
   useCamaras,
+  useDevicesStore,
   useInventario,
   useMapStore,
   useResidentes,
@@ -25,6 +26,7 @@ export function CasaDetailPanel() {
   const { porSensor } = useUltimasLecturas()
   const { residentesDe } = useResidentes()
   const alertas = useAlertsStore((s) => s.alerts)
+  const estadoPorDispositivo = useDevicesStore((s) => s.porDispositivo)
 
   const casa = casas.find((c) => c.id === casaId)
   const abierto = Boolean(casa)
@@ -137,17 +139,34 @@ export function CasaDetailPanel() {
                     residente puede tener varios y se listan bajo su nombre. */}
                 {residente.dispositivos.length > 0 && (
                   <ul className="mt-1 flex flex-col gap-0.5 pl-3">
-                    {residente.dispositivos.map((dispositivo) => (
-                      <li
-                        key={dispositivo.id}
-                        className="flex items-center gap-1.5 text-[11px] text-text-muted"
-                      >
-                        <Smartphone size={11} className="shrink-0" />
-                        <span className="min-w-0 truncate">{dispositivo.alias}</span>
-                        <span className="shrink-0">· {dispositivo.plataforma}</span>
-                        {!dispositivo.enabled && <span className="shrink-0">· inactivo</span>}
-                      </li>
-                    ))}
+                    {residente.dispositivos.map((dispositivo) => {
+                      // El estado en vivo manda sobre el alta: un dispositivo
+                      // habilitado que no reporta no está "activo".
+                      const estado = estadoPorDispositivo[dispositivo.id]
+                      return (
+                        <li
+                          key={dispositivo.id}
+                          className="flex items-center gap-1.5 text-[11px] text-text-muted"
+                        >
+                          <Smartphone
+                            size={11}
+                            className={estado?.online ? 'shrink-0 text-emerald-400' : 'shrink-0'}
+                          />
+                          <span className="min-w-0 truncate">{dispositivo.alias}</span>
+                          {estado ? (
+                            <span className="shrink-0">
+                              · {estado.battery}%{' '}
+                              {estado.online
+                                ? `· ${formatMessageTime(estado.updated_at)}`
+                                : '· sin señal'}
+                            </span>
+                          ) : (
+                            <span className="shrink-0">· {dispositivo.plataforma}</span>
+                          )}
+                          {!dispositivo.enabled && <span className="shrink-0">· dado de baja</span>}
+                        </li>
+                      )
+                    })}
                   </ul>
                 )}
               </li>

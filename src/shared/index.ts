@@ -17,6 +17,11 @@ export {
   type Session,
 } from './store/useAuthStore'
 export { useAlertsStore, useUnreadAlertCount } from './store/useAlertsStore'
+export {
+  useDevicesStore,
+  useDeviceStates,
+  dispositivoActivoPorUsuario,
+} from './store/useDevicesStore'
 export { useMapStore } from './store/useMapStore'
 export { useChatStore } from './store/useChatStore'
 export { useSettingsStore } from './store/useSettingsStore'

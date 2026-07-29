@@ -24,7 +24,13 @@ export interface Residente {
   dispositivos: Dispositivo[]
 }
 
-export function useResidentes(): { residentesDe: (casaId: string) => Residente[] } {
+export interface Inventario {
+  residentesDe: (casaId: string) => Residente[]
+  /** Alias del dispositivo y nombre de su dueño, para etiquetar el mapa. */
+  etiquetaDispositivo: (dispositivoID: string) => string
+}
+
+export function useResidentes(): Inventario {
   const condominioId = useAuthStore((s) => s.session?.condominioId ?? '')
   const [membresias, setMembresias] = useState<Membresia[]>([])
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
@@ -86,6 +92,16 @@ export function useResidentes(): { residentesDe: (casaId: string) => Residente[]
       porCasa.set(m.casaId, lista)
     }
 
-    return { residentesDe: (casaId: string) => porCasa.get(casaId) ?? [] }
+    const dispositivoPorId = new Map(dispositivos.map((d) => [d.id, d]))
+
+    return {
+      residentesDe: (casaId: string) => porCasa.get(casaId) ?? [],
+      etiquetaDispositivo: (dispositivoID: string) => {
+        const dispositivo = dispositivoPorId.get(dispositivoID)
+        if (!dispositivo) return dispositivoID
+        const dueno = nombrePorUsuario.get(dispositivo.userId)
+        return dueno ? `${dispositivo.alias} · ${dueno}` : dispositivo.alias
+      },
+    }
   }, [membresias, usuarios, dispositivos])
 }

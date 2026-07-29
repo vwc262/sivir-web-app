@@ -2,8 +2,11 @@ import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import type { StyleSpecification } from 'mapbox-gl'
 import {
+  dispositivoActivoPorUsuario,
   useAlertsStore,
   useCondominioId,
+  useDeviceStates,
+  useResidentes,
   useCondominios,
   useInventario,
   useMapStore,
@@ -19,7 +22,7 @@ import {
 } from '@/shared'
 import { MapControls } from './MapControls'
 import { ProviderToggle } from './ProviderToggle'
-import { crearMarcadorCasa, crearMarcadorCondominio } from './markers'
+import { crearMarcadorCasa, crearMarcadorCondominio, crearMarcadorDispositivo } from './markers'
 
 const OSM_STYLE: StyleSpecification = {
   version: 8,
@@ -56,6 +59,8 @@ export function MapView() {
   const provider = useMapStore((s) => s.provider)
   const { casas } = useInventario()
   const { condominios } = useCondominios()
+  const { etiquetaDispositivo } = useResidentes()
+  const estadosDispositivos = useDeviceStates()
   const condominioId = useCondominioId()
   const alertas = useAlertsStore((s) => s.alerts)
 
@@ -63,6 +68,10 @@ export function MapView() {
   // traen la vivienda resuelta en todos los casos, así que se ignoran las que
   // no la tienen en lugar de adivinar.
   const casasEnAlerta = new Set(alertas.filter((a) => a.casaId).map((a) => a.casaId))
+
+  // Un punto por usuario, no uno por aparato: alguien con móvil, tablet y PC
+  // registrados sigue siendo una persona en un sitio.
+  const dispositivos = dispositivoActivoPorUsuario(estadosDispositivos)
 
   // Creación del mapa: una sola vez.
   useEffect(() => {
@@ -154,13 +163,26 @@ export function MapView() {
       )
     }
 
+    // Dispositivos por encima de las casas: es lo que se mueve y lo que se mira.
+    for (const estado of dispositivos) {
+      const el = crearMarcadorDispositivo({
+        alias: etiquetaDispositivo(estado.dispositivo_id),
+        bateria: estado.battery,
+        online: estado.online,
+        actualizado: estado.updated_at,
+      })
+      markersRef.current.push(
+        new mapboxgl.Marker({ element: el }).setLngLat([estado.lng, estado.lat]).addTo(map),
+      )
+    }
+
     return () => {
       for (const marker of markersRef.current) marker.remove()
       markersRef.current = []
     }
     // casasEnAlerta se deriva de las alertas y centroCondominio de condominios:
     // se depende de las fuentes para no rehacer los marcadores en cada render.
-  }, [casas, alertas, condominios, condominioId])
+  }, [casas, alertas, condominios, condominioId, estadosDispositivos])
 
   useEffect(() => {
     const map = mapRef.current

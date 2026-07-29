@@ -132,6 +132,17 @@
   border-radius: 9999px;
 }
 
+/* Sin señal: se atenúa pero no se borra. La última posición conocida sigue
+   siendo información; quitarla afirmaría que no está en ninguna parte. */
+.map-pin--sin-senal {
+  opacity: 0.55;
+}
+.map-pin--sin-senal svg {
+  color: var(--color-text-muted);
+  border-color: rgba(255, 255, 255, 0.4);
+  border-style: dashed;
+}
+
 /* Alerta viva: color de aviso y anillo pulsante alrededor del icono. */
 .map-pin--alerta svg {
   color: var(--color-accent-red);

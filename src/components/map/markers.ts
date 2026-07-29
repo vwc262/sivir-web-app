@@ -71,26 +71,44 @@ export function crearMarcadorCondominio(nombre: string): HTMLElement {
 
 export interface MarcadorDispositivoOptions {
   alias: string
-  /** Nivel de batería 0–100, si se conoce. */
-  bateria?: number
+  /** Nivel de batería 0–100. */
+  bateria: number
+  /** El dispositivo sigue reportando. */
+  online: boolean
+  /** Instante del último reporte, en ISO. */
+  actualizado: string
   onClick?: () => void
 }
 
 /**
- * Marcador de un dispositivo activo. La posición en vivo llega en el slice 6;
- * la forma se define aquí para que el vocabulario visual del mapa esté completo
- * y las casas ya se distingan de las personas.
+ * Marcador de un dispositivo.
+ *
+ * El que ha dejado de reportar no desaparece: se atenúa y se etiqueta como
+ * "sin señal". Su última posición conocida sigue siendo información —es donde
+ * se le vio por última vez— y borrarlo del mapa afirmaría que no está en
+ * ninguna parte.
  */
 export function crearMarcadorDispositivo({
   alias,
   bateria,
+  online,
+  actualizado,
   onClick,
 }: MarcadorDispositivoOptions): HTMLElement {
   const el = document.createElement('div')
-  el.className = 'map-pin map-pin--dispositivo'
-  el.setAttribute('aria-label', alias)
-  el.title = bateria === undefined ? alias : `${alias} · ${bateria}%`
-  el.innerHTML = svg('dispositivo')
+  el.className = `map-pin map-pin--dispositivo${online ? '' : ' map-pin--sin-senal'}`
+  el.setAttribute('aria-label', `${alias} · ${bateria}%${online ? '' : ' · sin señal'}`)
+
+  const hora = new Date(actualizado).toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  el.title = online ? `${alias} · ${bateria}% · ${hora}` : `${alias} · sin señal desde las ${hora}`
+
+  el.innerHTML = `${svg('dispositivo')}<span class="map-pin__label">${escapar(
+    online ? `${bateria}%` : 'sin señal',
+  )}</span>`
+
   if (onClick) {
     el.addEventListener('click', (e) => {
       e.stopPropagation()

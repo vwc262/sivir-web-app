@@ -42,6 +42,52 @@ export interface LiveAlert {
 /** Estado de la conexión con el hub, para poder mostrarlo en la interfaz. */
 export type ConnectionStatus = 'idle' | 'connecting' | 'online' | 'offline'
 
+/** Tipos de mensaje del estado en vivo de dispositivos (`events/device.go`). */
+export const EVENT_DEVICE_STATE = 'device.state'
+export const EVENT_DEVICE_SNAPSHOT = 'device.snapshot'
+
+/**
+ * Estado de un dispositivo, tal como lo difunde el hub.
+ *
+ * `online: false` no significa que el dato sobre. Conserva la última posición
+ * conocida, que es justo lo que interesa cuando un dispositivo deja de reportar.
+ */
+export interface DeviceState {
+  type: string
+  condominio_id: string
+  dispositivo_id: string
+  user_id: string
+  lat: number
+  lng: number
+  battery: number
+  online: boolean
+  occurred_at: string
+  updated_at: string
+}
+
+/** Estado de todos los dispositivos del condominio, al conectarse un cliente. */
+export interface DeviceSnapshot {
+  type: string
+  condominio_id: string
+  devices: DeviceState[]
+}
+
+/** Reconoce un mensaje de estado de dispositivo. */
+export function asDeviceState(raw: unknown): DeviceState | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const msg = raw as Partial<DeviceState>
+  if (msg.type !== EVENT_DEVICE_STATE || !msg.dispositivo_id) return null
+  return msg as DeviceState
+}
+
+/** Reconoce la instantánea inicial del condominio. */
+export function asDeviceSnapshot(raw: unknown): DeviceSnapshot | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const msg = raw as Partial<DeviceSnapshot>
+  if (msg.type !== EVENT_DEVICE_SNAPSHOT || !Array.isArray(msg.devices)) return null
+  return msg as DeviceSnapshot
+}
+
 /** Convierte el mensaje del hub en una alerta de la UI. Devuelve null si no lo es. */
 export function toLiveAlert(raw: unknown): LiveAlert | null {
   if (typeof raw !== 'object' || raw === null) return null
