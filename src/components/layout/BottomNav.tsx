@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { Map, MessageSquare, Video, Settings } from 'lucide-react'
+import { Map, MessageSquare, Video, Activity, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
   { to: '/dashboard/map', icon: Map, label: 'Mapa' },
   { to: '/dashboard/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/dashboard/cameras', icon: Video, label: 'Cámaras' },
+  { to: '/dashboard/telemetry', icon: Activity, label: 'Telemetría' },
   { to: '/dashboard/settings', icon: Settings, label: 'Ajustes' },
 ] as const
 

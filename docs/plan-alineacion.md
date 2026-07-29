@@ -172,7 +172,7 @@ Cada slice deja el sitio funcionando y aporta valor visible por sí solo.
 |---|---|---|---|
 | **1** ✅ | **Alertas en vivo** | Origen del sitio en `CORS_ALLOWED_ORIGINS` del core | Fundaciones (config, cliente HTTP, auth, contexto de condominio) + WebSocket al hub + aviso de alerta |
 | **2** ✅ | **Cámaras reales** | `stream_id` en el inventario + `hlsUrl` derivada en el core + CORS en el video-edge | Inventario real por casa, reproducción HLS |
-| **3** | **Telemetría** | — (ya operativo) | Lecturas por casa y sensor, con histórico |
+| **3** ✅ | **Telemetría** | Dos correcciones en el informe (ver 6.3) | Lecturas por casa y sensor, con histórico |
 | **4** | **Mapa jerarquizado** | `lat`/`lng` en condominios y casas + edición en el panel | Mapa con las casas del condominio y navegación a su detalle |
 | **5** | **Dispositivos** | Tabla + CRUD en el core + alta en el panel | Dispositivos de cada usuario |
 | **6** | **Estado en vivo** | Ingesta WS en el hub → valor instantáneo + histórico en Cassandra | Dispositivo activo en el mapa, con batería |
@@ -234,6 +234,29 @@ desde el panel.
 hls.js pide el manifiesto por fetch y el navegador bloqueaba la respuesta al
 venir de otro origen —que es siempre: el edge vive en el condominio, en otra
 máquina—. Se añadieron las cabeceras, con `CORS_ALLOWED_ORIGINS` para acotarlas.
+
+## 6.3. Slice 3 — entregado
+
+Página de telemetría: los sensores del condominio agrupados por casa, cada uno
+con su última lectura, y para el seleccionado los agregados, la evolución y el
+detalle. Dos modos, que no son el mismo con otro filtro sino dos tablas
+distintas de Cassandra: **últimas 24 h** (`telemetry_live`, una partición) e
+**histórico** por rango de fechas (`telemetry_history`, que el core recorre día
+a día y devuelve ya agregado).
+
+La gráfica es un SVG a mano: es una serie simple y no compensaba cargar una
+librería de gráficos para dibujar una polilínea.
+
+Dos fallos del core que salieron al consumirlo de verdad:
+
+- **El informe descartaba el último día completo.** `hasta` se quedaba en la
+  medianoche de ese día, así que con el rango por defecto —que termina hoy— las
+  lecturas del día en curso nunca aparecían: 9 de 19 en la prueba. Ahora el
+  rango toma ambos extremos completos, que es lo que el propio comentario del
+  handler decía y no hacía.
+- **Las lecturas del informe salían sin casa.** El listado resolvía la vivienda
+  contra el inventario y el informe no, así que la misma lectura tenía casa por
+  un endpoint y no por el otro.
 
 ---
 

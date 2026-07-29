@@ -8,6 +8,7 @@ const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const MapPage = lazy(() => import('./pages/dashboard/MapPage'))
 const ChatPage = lazy(() => import('./pages/dashboard/ChatPage'))
 const CamerasPage = lazy(() => import('./pages/dashboard/CamerasPage'))
+const TelemetryPage = lazy(() => import('./pages/dashboard/TelemetryPage'))
 const SettingsPage = lazy(() => import('./pages/dashboard/SettingsPage'))
 
 export const router = createBrowserRouter([
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: 'map', element: <MapPage /> },
       { path: 'chat', element: <ChatPage /> },
       { path: 'cameras', element: <CamerasPage /> },
+      { path: 'telemetry', element: <TelemetryPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },

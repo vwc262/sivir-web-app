@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Map, MessageSquare, Video, Settings, LogOut, UserCircle2 } from 'lucide-react'
+import { Map, MessageSquare, Video, Activity, Settings, LogOut, UserCircle2 } from 'lucide-react'
 import { useAuthStore, useSession, useUnreadAlertCount } from '@/shared'
 
 const NAV_ITEMS = [
   { to: '/dashboard/map', icon: Map, label: 'Mapa' },
   { to: '/dashboard/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/dashboard/cameras', icon: Video, label: 'Cámaras' },
+  { to: '/dashboard/telemetry', icon: Activity, label: 'Telemetría' },
   { to: '/dashboard/settings', icon: Settings, label: 'Configuración' },
 ] as const
 

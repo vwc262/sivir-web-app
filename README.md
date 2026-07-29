@@ -105,6 +105,8 @@ Implementado:
   aviso emergente, panel e indicador de conexión).
 - **Slice 2** — **cámaras reales** del inventario, agrupadas por casa, con
   reproducción HLS.
+- **Slice 3** — **telemetría** por casa y sensor: última lectura de cada sensor,
+  agregados, evolución e histórico por rango de fechas.
 
 Todavía con datos de ejemplo: mapa (unidades) y chat. El plan por slices está en
 [`docs/plan-alineacion.md`](docs/plan-alineacion.md).

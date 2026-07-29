@@ -30,6 +30,26 @@ export const ROLES = {
   cliente: 'cliente',
 } as const
 
+/**
+ * Tipos de sensor que reconoce la plataforma (models.SensorType del
+ * mqtt-bridge), con su nombre en español. Un tipo desconocido se muestra tal
+ * cual llega en lugar de ocultarse.
+ */
+export const SENSOR_TYPE_LABELS: Record<string, string> = {
+  temperature: 'Temperatura',
+  humidity: 'Humedad',
+  pressure: 'Presión',
+  motion: 'Movimiento',
+  door: 'Puerta',
+  water_level: 'Nivel de agua',
+  electricity: 'Consumo eléctrico',
+  gas: 'Gas',
+  smoke: 'Humo',
+  unknown: 'Desconocido',
+}
+
+export const sensorTypeLabel = (tipo: string): string => SENSOR_TYPE_LABELS[tipo] ?? tipo
+
 // La URL HLS de cada cámara ya no se arma aquí: la calcula el core a partir de
 // la dirección pública del video-edge y viaja en el campo `hlsUrl` del
 // inventario. Dónde vive el nodo de vídeo es configuración del despliegue, y
