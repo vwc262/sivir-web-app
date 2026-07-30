@@ -7,7 +7,7 @@
 
 import { create } from 'zustand'
 import { enviarAdjunto, listMensajes, listSalas, type Mensaje, type Sala } from '../api'
-import { EVENT_CHAT_MESSAGE, type ChatMessageEvent } from '../realtime/types'
+import { EVENT_CHAT_MESSAGE, EVENT_CHAT_RELAY, type ChatMessageEvent } from '../realtime/types'
 import { enviarPorHub } from '../realtime/hubClient'
 import { useAuthStore } from './useAuthStore'
 
@@ -117,7 +117,7 @@ export const useChatStore = create<ChatState>()((set, get) => ({
     try {
       // Los binarios van por HTTP al core, que es quien habla con el
       // almacenamiento. El mensaje resultante se añade aquí porque esta vía no
-      // pasa por la difusión del hub.
+      // pasa por la difusión del hub: al remitente hay que pintárselo a mano.
       const mensaje = await enviarAdjunto(salaActiva, session.userId, file)
       set((s) => ({
         mensajes: {
@@ -125,6 +125,16 @@ export const useChatStore = create<ChatState>()((set, get) => ({
           [salaActiva]: [...(s.mensajes[salaActiva] ?? []), mensaje],
         },
       }))
+
+      // Al resto de la sala —conectados y ausentes— hay que avisarles por
+      // otra vía: el hub no se enteró de este mensaje porque nunca pasó por
+      // él. No se le manda el contenido, solo dónde encontrarlo: el hub
+      // vuelve a preguntarle al core antes de difundir o notificar nada.
+      enviarPorHub({
+        type: EVENT_CHAT_RELAY,
+        room_id: salaActiva,
+        message_id: mensaje.id,
+      })
     } catch {
       set({ error: 'No se pudo enviar el adjunto' })
     }

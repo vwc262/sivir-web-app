@@ -80,8 +80,14 @@ export function asDeviceState(raw: unknown): DeviceState | null {
   return msg as DeviceState
 }
 
-/** Tipo de mensaje de chat (`events/chat.go`). */
+/** Tipos de mensaje de chat (`events/chat.go`). */
 export const EVENT_CHAT_MESSAGE = 'chat.message'
+/**
+ * Aviso de que un mensaje se creó fuera del WebSocket (un adjunto, subido por
+ * HTTP directo al core). El hub no confía en el aviso: vuelve a preguntar al
+ * core por el contenido antes de difundir o notificar a nadie.
+ */
+export const EVENT_CHAT_RELAY = 'chat.relay'
 
 /**
  * Mensaje de chat tal como lo difunde el hub.
