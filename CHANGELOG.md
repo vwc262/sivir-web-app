@@ -12,6 +12,13 @@ El trabajo avanza por slices verticales; ver `docs/plan-alineacion.md`.
   y los adjuntos, por HTTP al core. Indicador cuando la conexión de mensajería
   está caída, sin perder lo escrito.
 
+### Corregido
+- Los **adjuntos no se difundían en vivo ni disparaban notificación push** al
+  resto de la sala: `adjuntar()` solo hablaba con el core por HTTP, sin pasar
+  nunca por el hub. Ahora avisa al hub tras la subida (`chat.relay`, solo sala
+  e id) para que difunda y notifique con el contenido que de verdad quedó
+  guardado.
+
 ### Eliminado
 - `mockData.ts`, `MOCK_CONVERSATIONS` y los tipos `ChatMessage`/`Conversation`
   de ejemplo. Con el chat real, ya no queda ningún dato de ejemplo en el sitio.
