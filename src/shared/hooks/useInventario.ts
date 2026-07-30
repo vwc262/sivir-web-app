@@ -2,7 +2,7 @@
 //
 // Las alertas del hub llegan con identificadores, no con nombres (patrón
 // Hydrate): el sitio los traduce con el inventario del core para poder decir
-// "Puerta principal · Casa A-101" en lugar de "sens-door-001 · viv-101".
+// "Puerta principal · Casa 1" en lugar de "sens-door-101 · viv-101".
 
 import { useEffect, useMemo, useState } from 'react'
 import { listCasas, listSensores, type Casa, type Sensor } from '../api'
