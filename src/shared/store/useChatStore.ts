@@ -43,6 +43,11 @@ function deEvento(evento: ChatMessageEvent): Mensaje {
     senderId: evento.sender_id,
     senderUsername: evento.sender_name,
     content: evento.content,
+    // Sin estos dos, un adjunto que llegaba por la difusión se pintaba como un
+    // mensaje de texto vacío: la burbuja necesita la URL para mostrarlo y el
+    // tipo MIME para decidir entre imagen y enlace de descarga.
+    mediaUrl: evento.media_url,
+    mediaType: evento.media_type,
     createdAt: evento.created_at,
   }
 }

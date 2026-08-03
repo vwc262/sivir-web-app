@@ -103,6 +103,10 @@ export interface ChatMessageEvent {
   sender_id: string
   sender_name: string
   content: string
+  /** URL prefirmada del adjunto, si el mensaje lleva uno. */
+  media_url?: string
+  /** Tipo MIME: decide si se pinta como imagen o como enlace de descarga. */
+  media_type?: string
   created_at: string
   /** Identificador que puso el emisor, para reconocer su propio mensaje. */
   client_id?: string
