@@ -1,18 +1,12 @@
 // Sesión del sitio de monitoreo.
 //
-// La sesión es la misma en los dos modos de autenticación: identidad, roles,
-// condominio y un access token. Lo que cambia es de dónde sale el token
-// —acuñado localmente en modo dev, emitido por Keycloak en producción— y quién
-// manda sobre el condominio: en dev lo elige el operador; en keycloak lo fija el
-// claim del token, que es lo que el hub usa para decidir qué alertas entrega, así
-// que el sitio no puede contradecirlo.
+// Identidad, roles, condominio y access token, todos emitidos por Keycloak. El
+// condominio viaja firmado en el claim del token —es lo que el hub usa para
+// decidir qué canal de alertas entrega—, así que el sitio no puede cambiarlo.
 
 import { create } from 'zustand'
-import { apiList } from '../api/http'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { AUTH_MODE, type AuthMode } from '../config'
-import { ROLES, STORAGE_KEYS } from '../constants'
-import { mintDevToken } from '../auth/devToken'
+import { STORAGE_KEYS } from '../constants'
 import { sivirStorage } from './storage'
 
 export interface Session {
@@ -24,47 +18,19 @@ export interface Session {
   token: string
   /** Caducidad del token en epoch ms. */
   expiresAt: number
-  mode: AuthMode
   loggedAt: string
-}
-
-export interface LoginParams {
-  username: string
-  role?: string
-  condominioId?: string
 }
 
 interface AuthState {
   session: Session | null
-  /** Modo dev: acuña la sesión local. Modo keycloak: redirige al proveedor. */
-  login: (params: LoginParams) => Promise<void>
-  /** Cierra la sesión (y la de Keycloak si aplica). */
+  /** Redirige al proveedor de identidad (Keycloak). */
+  login: () => Promise<void>
+  /** Cierra la sesión de Keycloak. */
   logout: () => Promise<void>
-  /** Cambia el condominio activo; en modo dev vuelve a acuñar el token. */
+  /** El condominio lo fija el token; no hay forma de cambiarlo desde el sitio. */
   setCondominio: (condominioId: string) => void
   /** Instala una sesión ya resuelta (callback de Keycloak). */
   setSession: (session: Session) => void
-}
-
-/**
- * Busca el identificador de un usuario por su nombre.
- *
- * Solo en modo dev: si el core no responde o el nombre no existe se sigue
- * adelante con un identificador inventado, porque el bypass debe funcionar
- * aunque no haya backend —solo que entonces el usuario no pertenece a ninguna
- * sala ni tiene dispositivos—.
- */
-async function buscarUsuario(username: string): Promise<string | null> {
-  try {
-    const { data } = await apiList<{ id: string; username: string }>('/usuarios', {
-      username,
-      _start: 0,
-      _end: 1,
-    })
-    return data[0]?.id ?? null
-  } catch {
-    return null
-  }
 }
 
 /** Indica si la sesión existe y su token sigue vigente. */
@@ -74,63 +40,24 @@ export function isSessionValid(session: Session | null): session is Session {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       session: null,
 
-      login: async ({ username, role = ROLES.cliente, condominioId = '' }) => {
-        if (AUTH_MODE === 'keycloak') {
-          const { userManager } = await import('../auth/keycloakClient')
-          await userManager.signinRedirect()
-          return
-        }
-
-        // La identidad de desarrollo se ata a un usuario real del dominio
-        // cuando el nombre coincide con uno dado de alta. Importa: las salas de
-        // chat, las membresías y los dispositivos cuelgan de ese identificador,
-        // y con uno inventado el usuario no pertenecería a nada.
-        const userId = (await buscarUsuario(username)) ?? `dev-${username}`
-        const { token, expiresAt } = mintDevToken({ userId, username, roles: [role], condominioId })
-        set({
-          session: {
-            userId,
-            username,
-            roles: [role],
-            condominioId,
-            token,
-            expiresAt,
-            mode: 'dev',
-            loggedAt: new Date().toISOString(),
-          },
-        })
+      login: async () => {
+        const { userManager } = await import('../auth/keycloakClient')
+        await userManager.signinRedirect()
       },
 
       logout: async () => {
-        const mode = get().session?.mode
         set({ session: null })
-        if (mode === 'keycloak') {
-          const { userManager } = await import('../auth/keycloakClient')
-          await userManager.signoutRedirect()
-        }
+        const { userManager } = await import('../auth/keycloakClient')
+        await userManager.signoutRedirect()
       },
 
-      setCondominio: (condominioId) => {
-        const session = get().session
-        if (!session || session.condominioId === condominioId) return
-
-        // En modo keycloak el condominio viaja firmado en el token: cambiarlo
-        // aquí desincronizaría el sitio del canal que sirve el hub.
-        if (session.mode === 'keycloak') {
-          console.warn('[auth] el condominio lo fija el token de Keycloak; no se cambia en el sitio')
-          return
-        }
-
-        const { token, expiresAt } = mintDevToken({
-          userId: session.userId,
-          username: session.username,
-          roles: session.roles,
-          condominioId,
-        })
-        set({ session: { ...session, condominioId, token, expiresAt } })
+      setCondominio: () => {
+        // El condominio viaja firmado en el token: cambiarlo aquí
+        // desincronizaría el sitio del canal que sirve el hub.
+        console.warn('[auth] el condominio lo fija el token de Keycloak; no se cambia en el sitio')
       },
 
       setSession: (session) => set({ session }),

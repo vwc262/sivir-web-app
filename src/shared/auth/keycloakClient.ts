@@ -1,6 +1,6 @@
 // Cliente OIDC (Authorization Code + PKCE) contra Keycloak. Mismo patrón que el
-// panel de administración. Solo se usa con VITE_AUTH_MODE=keycloak; en modo dev
-// el módulo ni siquiera se carga (import dinámico desde el store).
+// panel de administración. Se importa de forma dinámica desde el store y la
+// página de callback para mantenerlo fuera del chunk inicial.
 import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
 import { CONFIG } from '../config'
 

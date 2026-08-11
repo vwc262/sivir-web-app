@@ -1,17 +1,13 @@
 import { Building2, RefreshCw } from 'lucide-react'
-import { useAuthStore, useCondominios, AUTH_MODE } from '@/shared'
+import { useAuthStore, useCondominios } from '@/shared'
 
 /**
- * Selector global de condominio. Cambiarlo reemite el token de desarrollo y, con
- * él, la conexión al hub: el condominio es el canal de alertas.
- *
- * En modo keycloak el condominio lo fija el token, así que aquí solo se muestra.
+ * Selector global de condominio: solo muestra el condominio activo. Lo fija el
+ * claim del token de Keycloak, así que no se puede cambiar desde el sitio.
  */
 export function CondominioSelector() {
   const { condominios, loading, error, reload } = useCondominios()
   const condominioId = useAuthStore((s) => s.session?.condominioId ?? '')
-  const setCondominio = useAuthStore((s) => s.setCondominio)
-  const fijadoPorToken = AUTH_MODE === 'keycloak'
 
   if (error) {
     return (
@@ -31,10 +27,9 @@ export function CondominioSelector() {
       <Building2 size={14} className="text-text-muted" />
       <select
         value={condominioId}
-        disabled={fijadoPorToken || loading || condominios.length === 0}
-        onChange={(e) => setCondominio(e.target.value)}
+        disabled
         className="max-w-[190px] bg-transparent text-xs text-text-primary outline-none disabled:cursor-not-allowed"
-        title={fijadoPorToken ? 'El condominio lo determina tu sesión de Keycloak' : 'Condominio activo'}
+        title="El condominio lo determina tu sesión de Keycloak"
       >
         {loading && <option value="">Cargando…</option>}
         {!loading && condominios.length === 0 && <option value="">Sin condominios</option>}

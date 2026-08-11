@@ -4,9 +4,6 @@
 // el token de Mapbox— debe estar escrito en el código: el mismo build se
 // promueve entre entornos cambiando solo el `.env`. Ver `.env.example`.
 
-/** Modo de autenticación, mismo bypass de desarrollo que el resto de la plataforma. */
-export type AuthMode = 'dev' | 'keycloak'
-
 const origin = typeof window !== 'undefined' ? window.location.origin : ''
 
 /** Lee una variable con valor por defecto, ignorando cadenas vacías. */
@@ -15,17 +12,12 @@ function envVar(value: string | undefined, fallback: string): string {
   return trimmed ? trimmed : fallback
 }
 
-export const AUTH_MODE: AuthMode =
-  import.meta.env.VITE_AUTH_MODE === 'keycloak' ? 'keycloak' : 'dev'
-
 export const CONFIG = {
   /** sivir-rest-core: dominio, telemetría e historial de chat. */
   coreUrl: envVar(import.meta.env.VITE_CORE_URL, 'http://localhost:8082').replace(/\/+$/, ''),
 
   /** sivir-realtime-hub: WebSocket de alertas en vivo. */
   hubWsUrl: envVar(import.meta.env.VITE_HUB_WS_URL, 'ws://localhost:8080/ws'),
-
-  authMode: AUTH_MODE,
 
   keycloak: {
     authority: envVar(import.meta.env.VITE_KEYCLOAK_AUTHORITY, ''),

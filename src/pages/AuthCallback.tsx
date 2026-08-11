@@ -1,5 +1,5 @@
 // Retorno del flujo OIDC de Keycloak: canjea el authorization code y deja la
-// sesión instalada en el store. Solo se usa con VITE_AUTH_MODE=keycloak.
+// sesión instalada en el store.
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/shared'
@@ -12,7 +12,7 @@ export default function AuthCallback() {
   useEffect(() => {
     let cancelled = false
 
-    // Import dinámico: el cliente OIDC no debe entrar en el bundle en modo dev.
+    // Import dinámico: mantiene el cliente OIDC fuera del chunk inicial.
     void (async () => {
       try {
         const { userManager, claimsFromProfile } = await import('@/shared/auth/keycloakClient')
@@ -29,7 +29,6 @@ export default function AuthCallback() {
           condominioId: claims.condominioId,
           token: user.access_token,
           expiresAt: (user.expires_at ?? 0) * 1000,
-          mode: 'keycloak',
           loggedAt: new Date().toISOString(),
         })
         navigate('/dashboard/map', { replace: true })

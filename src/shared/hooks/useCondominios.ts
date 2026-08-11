@@ -1,13 +1,11 @@
-// Carga los condominios del core y garantiza que siempre haya uno activo.
+// Carga los condominios del core.
 //
 // El condominio es el contexto de todo el sitio: es la clave de partición de la
-// telemetría y el canal por el que llegan las alertas. Sin uno seleccionado, el
-// hub no admite la conexión, así que en modo dev se elige el primero en cuanto
-// se conocen.
+// telemetría y el canal por el que llegan las alertas. Lo fija el claim del
+// token de Keycloak; este hook solo lista el catálogo para mostrarlo.
 
 import { useCallback, useEffect, useState } from 'react'
 import { listCondominios, type Condominio, HttpError } from '../api'
-import { useAuthStore } from '../store/useAuthStore'
 
 interface CondominiosState {
   condominios: Condominio[]
@@ -34,13 +32,6 @@ export function useCondominios(): CondominiosState {
         if (cancelled) return
         setCondominios(data)
         setError(null)
-
-        // Autoselección: solo cuando el sitio manda sobre el condominio (dev).
-        // En modo keycloak lo fija el token y `setCondominio` lo ignora.
-        const session = useAuthStore.getState().session
-        if (session?.mode === 'dev' && !session.condominioId && data.length > 0) {
-          useAuthStore.getState().setCondominio(data[0].id)
-        }
       })
       .catch((cause: unknown) => {
         if (cancelled) return

@@ -33,55 +33,46 @@ export function useHubConnection(): void {
       return
     }
 
-    let client: HubClient | null = null
-    let cancelled = false
+    // getToken (no un token fijo): el cliente lo llama en cada conexión y
+    // reconexión, incluidas las que dispara el propio hub al avisar que la
+    // sesión está por vencer o ya venció.
+    const client = new HubClient({
+      url: CONFIG.hubWsUrl,
+      getToken: getAccessToken,
+      onStatus: setStatus,
+      onMessage: (raw) => {
+        // Por la misma conexión llegan dos cosas: alertas y estado de los
+        // dispositivos. Se reparten por tipo.
+        const alert = toLiveAlert(raw)
+        if (alert) {
+          // El hub ya segmenta por condominio; el filtro es una salvaguarda
+          // por si llega algo de otro canal tras un cambio de condominio.
+          if (alert.condominioId === condominioId) push(alert)
+          return
+        }
 
-    void getAccessToken().then((token) => {
-      if (cancelled) return
-      if (!token) {
-        setStatus('offline')
-        return
-      }
+        const snapshot = asDeviceSnapshot(raw)
+        if (snapshot) {
+          aplicarVarios(snapshot.devices)
+          return
+        }
 
-      client = new HubClient({
-        url: CONFIG.hubWsUrl,
-        token,
-        onStatus: setStatus,
-        onMessage: (raw) => {
-          // Por la misma conexión llegan dos cosas: alertas y estado de los
-          // dispositivos. Se reparten por tipo.
-          const alert = toLiveAlert(raw)
-          if (alert) {
-            // El hub ya segmenta por condominio; el filtro es una salvaguarda
-            // por si llega algo de otro canal tras un cambio de condominio.
-            if (alert.condominioId === condominioId) push(alert)
-            return
-          }
+        const estado = asDeviceState(raw)
+        if (estado && estado.condominio_id === condominioId) {
+          aplicar(estado)
+          return
+        }
 
-          const snapshot = asDeviceSnapshot(raw)
-          if (snapshot) {
-            aplicarVarios(snapshot.devices)
-            return
-          }
-
-          const estado = asDeviceState(raw)
-          if (estado && estado.condominio_id === condominioId) {
-            aplicar(estado)
-            return
-          }
-
-          const mensaje = asChatMessage(raw)
-          if (mensaje) useChatStore.getState().recibir(mensaje)
-        },
-      })
-      client.connect()
-      registrarHub(client)
+        const mensaje = asChatMessage(raw)
+        if (mensaje) useChatStore.getState().recibir(mensaje)
+      },
     })
+    client.connect()
+    registrarHub(client)
 
     return () => {
-      cancelled = true
       registrarHub(null)
-      client?.close()
+      client.close()
     }
   }, [userId, condominioId])
 }

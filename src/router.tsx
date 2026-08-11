@@ -3,7 +3,6 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
 import DashboardLayout from './pages/dashboard/_layout'
 
-// El callback de Keycloak es lazy: en modo dev ni siquiera se descarga.
 const AuthCallback = lazy(() => import('./pages/AuthCallback'))
 const MapPage = lazy(() => import('./pages/dashboard/MapPage'))
 const ChatPage = lazy(() => import('./pages/dashboard/ChatPage'))

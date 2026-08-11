@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Bell } from 'lucide-react'
-import { AUTH_MODE, useUnreadAlertCount } from '@/shared'
+import { useUnreadAlertCount } from '@/shared'
 import { AlertsPanel } from '@/components/alerts/AlertsPanel'
 import { ConnectionBadge } from '@/components/alerts/ConnectionBadge'
 import { CondominioSelector } from './CondominioSelector'
@@ -17,15 +17,6 @@ export function TopBar() {
         <ConnectionBadge />
 
         <div className="flex-1" />
-
-        {AUTH_MODE === 'dev' && (
-          <span
-            className="hidden rounded-lg border border-accent-amber/40 bg-accent-amber/10 px-2 py-1 text-[10px] font-semibold tracking-wide text-accent-amber uppercase sm:inline"
-            title="Autenticación sin Keycloak: solo desarrollo"
-          >
-            modo dev
-          </span>
-        )}
 
         <button
           onClick={() => setPanelOpen(true)}
