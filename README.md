@@ -20,13 +20,23 @@ privilegiadas de la Admin API de Keycloak, que el sitio no necesita. Por eso el
 origen del sitio tiene que estar en `CORS_ALLOWED_ORIGINS` del core (ya
 configurado en `sivir-infra-devops/docker-compose.dev.yml`).
 
+## Dependencias
+
+| Qué | Para qué | Sin ello |
+|---|---|---|
+| Keycloak | Login (Authorization Code + PKCE) | No se puede entrar |
+| `sivir-rest-core` | Inventario, historial de chat, adjuntos, telemetría | Las pantallas salen vacías o con error |
+| `sivir-realtime-hub` | Alertas, chat en vivo, estado de dispositivos | Se ve "Sin conexión"; el resto del sitio funciona |
+| `sivir-video-edge` | Reproducción de cámaras | El inventario lista las cámaras, pero no se reproducen |
+
+`rest-core` y el hub tienen que permitir el origen de este sitio
+(`CORS_ALLOWED_ORIGINS` y `HUB_ALLOWED_ORIGINS` con
+`http://localhost:5174`).
+
 ## Puesta en marcha
 
-1. Levantar la plataforma desde `sivir-infra-devops`:
-
-   ```bash
-   docker compose -f docker-compose.dev.yml up -d
-   ```
+1. Levantar la plataforma desde `sivir-infra-devops` (o al menos Keycloak,
+   `rest-core` y el hub; ver `docs/pruebas-e2e.md`).
 
 2. Configurar el sitio y arrancarlo:
 
@@ -40,36 +50,63 @@ configurado en `sivir-infra-devops/docker-compose.dev.yml`).
    5173 lo ocupa el panel de administración, y el origen está en la lista CORS
    del core.
 
-3. Entrar con cualquier usuario y contraseña (modo dev) y elegir el condominio
-   en la barra superior.
+   `.env` para el entorno de desarrollo:
+
+   ```bash
+   VITE_CORE_URL=http://localhost:8082
+   VITE_HUB_WS_URL=ws://localhost:8083/ws
+   VITE_KEYCLOAK_AUTHORITY=http://localhost:8080/realms/SecurityFramework
+   VITE_KEYCLOAK_CLIENT_ID=sivir-web-app
+   VITE_KEYCLOAK_SCOPE=openid profile email
+   ```
+
+3. Entrar con un usuario real del realm. **Su token tiene que traer el claim
+   `condominio_id`**: sin él, el hub rechaza el handshake y no hay alertas ni
+   chat. Cómo crear usuarios de prueba: `sivir-infra-devops/docs/pruebas-e2e.md` §5.
 
 4. Provocar una alerta y verla llegar:
 
    ```bash
-   docker exec sivir_mosquitto mosquitto_pub -h localhost -t 'condominios/cond-bcn-01/door' -m '{"sensor_id":"sens-door-001","condominio_id":"cond-bcn-01","value":1,"sensor_type":"door","unit":""}'
+   docker exec sivir_redis redis-cli PUBLISH "rt:condo:cond-bcn-01" \
+     '{"type":"iot.alert","condominio_id":"cond-bcn-01","vivienda_id":"viv-101","sensor_id":"sens-smoke-101","sensor_type":"smoke","severity":"critical","message":"prueba","occurred_at":"2026-08-13T18:30:00Z"}'
    ```
+
+   **Esperado:** aparece en la campana de alertas sin recargar la página.
 
 ## Autenticación
 
-Dos modos, con `VITE_AUTH_MODE`, el mismo patrón que el resto de la plataforma:
+**OIDC real contra Keycloak** (Authorization Code + PKCE, con `oidc-client-ts`);
+el retorno lo procesa `/auth/callback`. No hay modo de desarrollo con bypass:
+se retiró a propósito, así que hace falta un Keycloak alcanzable.
 
-- **`dev`** (por defecto): el sitio **acuña un JWT local** con los claims que el
-  hub necesita (`sub`, `condominio_id`, `roles`). No es un marcador simbólico:
-  el hub, aun en modo dev, parsea el token y rechaza el handshake si no porta el
-  condominio. Requiere `HUB_AUTH_MODE=dev` y `CORE_AUTH_MODE=dev`.
-- **`keycloak`**: OIDC real (Authorization Code + PKCE) con `oidc-client-ts`. El
-  retorno lo procesa `/auth/callback`.
+El sitio **no filtra por rol**: cualquier usuario autenticado ve las mismas
+pantallas. Es lo que permite que el personal de vigilancia (rol `admin`) use
+este mismo chat en vez de tener uno propio en el panel de administración.
+
+La sesión se renueva sola (`automaticSilentRenew`). Si el hub avisa de que el
+token está por vencer (`auth.expiring`) o ya venció (`auth.expired`, cierre
+`4401`), el cliente reconecta con uno fresco sin intervención del usuario.
 
 ## Condominio activo
 
 Todo el sitio opera dentro de un condominio: es la clave de partición de la
 telemetría y el canal de las alertas.
 
-- En modo **dev** se elige en la barra superior. Cambiarlo reemite el token y,
-  con él, la conexión al hub —el hub agrupa por el claim del token, así que no
-  existe un "cámbiame de canal" sin token nuevo—. Las alertas del condominio
-  anterior se descartan para no inducir a error.
-- En modo **keycloak** lo fija el token y el selector solo lo muestra.
+Lo fija el claim `condominio_id` del token y el selector de la barra superior
+solo lo muestra —está deshabilitado a propósito—. El hub agrupa a los clientes
+por ese claim, así que no existe un "cámbiame de canal" sin un token nuevo.
+
+## Comprobación aislada
+
+Sin backend solo se puede comprobar que compila:
+
+```bash
+npx tsc --noEmit
+npm run build
+```
+
+Con la plataforma levantada, el recorrido de prueba de chat y alertas está en
+`sivir-infra-devops/docs/pruebas-e2e.md` §7.2 y §9.
 
 ## Estructura
 
