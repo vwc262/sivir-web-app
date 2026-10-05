@@ -1,8 +1,9 @@
-// Estado en vivo de los dispositivos, tal como lo va empujando el hub.
+// Estado en vivo de los dispositivos: la última posición conocida que da el
+// core al cargar y, a partir de ahí, lo que va empujando el hub.
 //
-// No se persiste: es el presente, y al recargar la página el hub vuelve a
-// mandar su instantánea. Guardarlo solo serviría para mostrar posiciones viejas
-// como si fueran actuales.
+// No se persiste en el navegador: al recargar la página se vuelve a pedir al
+// core y el hub manda su instantánea. Guardarlo solo serviría para mostrar
+// posiciones viejas como si fueran actuales.
 
 import { useMemo } from 'react'
 import { create } from 'zustand'

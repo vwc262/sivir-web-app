@@ -3,6 +3,26 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 El trabajo avanza por slices verticales; ver `docs/plan-alineacion.md`.
 
+## [No publicado] — 2026-10-05
+
+### Corregido
+- **El login fallaba en desarrollo con "No matching state found in storage"**:
+  StrictMode montaba dos veces el callback de Keycloak; el primer canje del
+  code se descartaba por cancelado y el segundo ya no encontraba el `state`.
+  Ahora el canje se hace una sola vez y ambos montajes comparten el resultado.
+- **El sitio devolvía al login cada pocos minutos** con la sesión de Keycloak
+  aún viva: la sesión guardada conservaba la caducidad del primer token y no
+  se enteraba de las renovaciones en segundo plano. Ahora se actualiza con
+  cada renovación y, al volver con el token guardado vencido, se intenta
+  renovar antes de mandar al login.
+- **El mapa se quedaba sin dispositivos si el hub no conseguía su última
+  posición** (instantánea vacía). Ahora el sitio la pide también al core al
+  cargar, así que se ven todos, conectados o no, con su última posición
+  conocida; el hub sigue actualizándolos en vivo.
+- Las etiquetas de los dispositivos podían quedarse en el id (`dev-…`) en vez
+  del alias y el nombre del dueño, si los estados llegaban antes que los
+  residentes.
+
 ## [No publicado] — 2026-07-30
 
 ### Añadido

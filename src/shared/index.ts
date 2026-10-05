@@ -7,7 +7,7 @@ export * from './api'
 export * from './hooks'
 export * from './realtime'
 export * from './store/storage'
-export { getAccessToken } from './auth'
+export { getAccessToken, useSessionRenewal } from './auth'
 export {
   useAuthStore,
   useSession,

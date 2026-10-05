@@ -2,7 +2,22 @@
 // sesión instalada en el store.
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import type { User } from 'oidc-client-ts'
 import { useAuthStore } from '@/shared'
+
+// El canje del code se hace una sola vez por carga de página. oidc-client-ts
+// borra el `state` guardado al leerlo, y en desarrollo StrictMode monta el
+// efecto dos veces: el segundo canje fallaría con "No matching state found in
+// storage" mientras el primero —el bueno— se descartaba por cancelado. Ambos
+// montajes esperan ahora la misma promesa.
+let canje: Promise<User> | null = null
+
+function canjearCode(): Promise<User> {
+  canje ??= import('@/shared/auth/keycloakClient').then(({ userManager }) =>
+    userManager.signinRedirectCallback(),
+  )
+  return canje
+}
 
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -15,8 +30,8 @@ export default function AuthCallback() {
     // Import dinámico: mantiene el cliente OIDC fuera del chunk inicial.
     void (async () => {
       try {
-        const { userManager, claimsFromProfile } = await import('@/shared/auth/keycloakClient')
-        const user = await userManager.signinRedirectCallback()
+        const { claimsFromProfile } = await import('@/shared/auth/keycloakClient')
+        const user = await canjearCode()
         if (cancelled) return
 
         const claims = claimsFromProfile(user.profile as unknown as Record<string, unknown>)

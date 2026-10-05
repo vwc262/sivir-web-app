@@ -1,6 +1,7 @@
 // Servicios del dominio residencial contra sivir-rest-core.
 
 import { apiGet, apiList, type ListResult } from './http'
+import type { DeviceState } from '../realtime/types'
 import type { Camara, Casa, Condominio, Dispositivo, Membresia, Sensor, Usuario } from './types'
 
 /** Página amplia: el inventario de un condominio es pequeño y cabe de una vez. */
@@ -39,6 +40,18 @@ export function listUsuarios(): Promise<ListResult<Usuario>> {
 /** Dispositivos, de un usuario concreto o de todos. */
 export function listDispositivos(userId?: string): Promise<ListResult<Dispositivo>> {
   return apiList<Dispositivo>('/dispositivos', { ...PAGE, userId, _sort: 'alias', _order: 'asc' })
+}
+
+/**
+ * Último estado conocido de los dispositivos de un condominio, conectados o no.
+ *
+ * Es lo mismo que el hub manda en su instantánea al conectarse, leído
+ * directamente del core: así el mapa muestra la última posición de cada uno
+ * aunque el hub no consiga recuperarla (caché vacía y core inalcanzable desde
+ * él), y no solo de quien está reportando en este momento.
+ */
+export function listEstadosDispositivos(condominioId: string): Promise<DeviceState[]> {
+  return apiGet<DeviceState[]>('/dispositivos/estado', { condominioId })
 }
 
 export const getCondominio = (id: string) => apiGet<Condominio>(`/condominios/${id}`)

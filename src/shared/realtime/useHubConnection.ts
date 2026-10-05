@@ -6,6 +6,7 @@
 import { useEffect } from 'react'
 import { CONFIG } from '../config'
 import { getAccessToken } from '../auth/token'
+import { listEstadosDispositivos } from '../api'
 import { useAlertsStore } from '../store/useAlertsStore'
 import { useAuthStore } from '../store/useAuthStore'
 import { useDevicesStore } from '../store/useDevicesStore'
@@ -32,6 +33,21 @@ export function useHubConnection(): void {
       setStatus('idle')
       return
     }
+
+    // Última posición conocida de cada dispositivo, conectado o no, leída del
+    // core. La instantánea del hub trae lo mismo, pero si él no consigue
+    // recuperarla llega vacía y el mapa se quedaría sin nadie hasta el primer
+    // reporte. aplicarVarios descarta lo más viejo que lo ya recibido, así que
+    // da igual quién llegue antes.
+    let cancelado = false
+    listEstadosDispositivos(condominioId)
+      .then((estados) => {
+        if (!cancelado) aplicarVarios(estados)
+      })
+      .catch((cause: unknown) => {
+        // No es fatal: el hub sigue empujando a quien reporte.
+        console.warn('[dispositivos] no se pudo cargar la última posición conocida', cause)
+      })
 
     // getToken (no un token fijo): el cliente lo llama en cada conexión y
     // reconexión, incluidas las que dispara el propio hub al avisar que la
@@ -71,6 +87,7 @@ export function useHubConnection(): void {
     registrarHub(client)
 
     return () => {
+      cancelado = true
       registrarHub(null)
       client.close()
     }

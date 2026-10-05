@@ -4,7 +4,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { TopBar } from '@/components/layout/TopBar'
 import { AlertToast } from '@/components/alerts/AlertToast'
-import { useHubConnection, useSession } from '@/shared'
+import { useHubConnection, useSession, useSessionRenewal } from '@/shared'
 
 function PageLoader() {
   return (
@@ -16,11 +16,15 @@ function PageLoader() {
 
 export default function DashboardLayout() {
   const session = useSession()
+  const verificandoSesion = useSessionRenewal()
 
   // Única conexión con el hub de toda la aplicación: montarla en dos sitios
   // duplicaría cada alerta.
   useHubConnection()
 
+  // Una sesión guardada con el token vencido puede seguir viva en Keycloak:
+  // antes de mandar al login se espera a saber si se pudo renovar.
+  if (verificandoSesion) return <PageLoader />
   if (!session) return <Navigate to="/" replace />
 
   return (

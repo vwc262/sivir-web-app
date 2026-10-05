@@ -182,7 +182,10 @@ export function MapView() {
     }
     // casasEnAlerta se deriva de las alertas y centroCondominio de condominios:
     // se depende de las fuentes para no rehacer los marcadores en cada render.
-  }, [casas, alertas, condominios, condominioId, estadosDispositivos])
+    // etiquetaDispositivo sí entra: es estable (useMemo) y, si los estados
+    // llegan antes que los residentes, sin ella las etiquetas se quedarían en
+    // el id del dispositivo.
+  }, [casas, alertas, condominios, condominioId, estadosDispositivos, etiquetaDispositivo])
 
   useEffect(() => {
     const map = mapRef.current
