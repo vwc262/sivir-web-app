@@ -1,5 +1,6 @@
 import { MapView } from '@/components/map/MapView'
 import { CasaDetailPanel, CasasSinUbicar } from '@/components/map/CasaDetailPanel'
+import { ModeloDetailPanel } from '@/components/map/ModeloDetailPanel'
 import { useInventario } from '@/shared'
 
 export default function MapPage() {
@@ -12,6 +13,7 @@ export default function MapPage() {
     <div className="relative h-full w-full overflow-hidden">
       <MapView />
       <CasaDetailPanel />
+      <ModeloDetailPanel />
       <CasasSinUbicar total={sinUbicar} />
     </div>
   )

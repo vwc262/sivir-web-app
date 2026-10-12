@@ -2,14 +2,17 @@ interface ToggleProps {
   checked: boolean
   onChange: (checked: boolean) => void
   label?: string
+  /** Nombre accesible cuando el texto visible va fuera del componente. */
+  ariaLabel?: string
 }
 
-export function Toggle({ checked, onChange, label }: ToggleProps) {
+export function Toggle({ checked, onChange, label, ariaLabel }: ToggleProps) {
   return (
     <label className="flex cursor-pointer items-center gap-3 select-none">
       <input
         type="checkbox"
         className="peer sr-only"
+        aria-label={ariaLabel}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />

@@ -3,6 +3,22 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 El trabajo avanza por slices verticales; ver `docs/plan-alineacion.md`.
 
+## [No publicado] — 2026-10-12
+
+### Añadido
+- **Modelos 3D en el mapa**: archivos `.glb` en su propia ubicación,
+  independientes de condominios y casas, con la capa `model` nativa de Mapbox
+  GL v3. Se sirven por HTTPS desde `VITE_MODELS_BASE_URL`; las instancias
+  (archivo, posición, escala y giro) están en `src/shared/modelos3d.ts`.
+- **Ficha de los sitios 3D**: al hacer clic en un modelo propio se abre un
+  panel con su información (tipo, estado, dirección, horario, responsable…),
+  en el mismo lugar que el detalle de una casa. Los edificios del mapa base no
+  reaccionan. Mientras un sitio no tenga `info` en `modelos3d.ts`, muestra una
+  ficha de ejemplo marcada como tal.
+- **Iluminación del mapa** en Configuración: día, atardecer y noche. Cambia la
+  luz de los modelos y volúmenes 3D (con sombras de día y al atardecer), no el
+  color del mapa base. Se recuerda entre visitas.
+
 ## [No publicado] — 2026-10-05
 
 ### Corregido

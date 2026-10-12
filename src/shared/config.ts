@@ -44,6 +44,16 @@ export const CONFIG = {
       'mapbox://styles/mapbox/dark-v11',
     ),
   },
+
+  modelos: {
+    /**
+     * Base HTTPS desde la que se sirven los modelos 3D (.glb) del mapa. Cada
+     * modelo de MODELOS_3D se pide como `${baseUrl}/${archivo}`: cambiar de
+     * servidor es cambiar esta variable, no la lista. Vacía, el mapa no dibuja
+     * modelos.
+     */
+    baseUrl: envVar(import.meta.env.VITE_MODELS_BASE_URL, '').replace(/\/+$/, ''),
+  },
 } as const
 
 /**

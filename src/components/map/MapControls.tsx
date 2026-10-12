@@ -32,14 +32,15 @@ export function MapControls({ mapRef, centro, zoomCondominio }: MapControlsProps
   ] as const
 
   return (
-    <div className="glass-card absolute top-4 right-4 z-10 flex flex-col overflow-hidden bg-bg-surface/80">
+    // Opaco y con borde: sobre edificios en 3D, un fondo translúcido se pierde.
+    <div className="absolute top-4 right-4 z-10 flex flex-col divide-y divide-white/10 overflow-hidden rounded-xl border border-white/15 bg-bg-surface shadow-xl shadow-black/50">
       {controls.map(({ icon: Icon, label, action }) => (
         <button
           key={label}
           onClick={action}
           aria-label={label}
           title={label}
-          className="flex h-10 w-10 items-center justify-center text-text-muted transition-colors hover:bg-white/10 hover:text-text-primary cursor-pointer"
+          className="flex h-10 w-10 items-center justify-center text-slate-200 transition-colors hover:bg-white/15 hover:text-white cursor-pointer"
         >
           <Icon size={18} />
         </button>

@@ -3,6 +3,7 @@ import { OperatorCard } from '@/components/settings/OperatorCard'
 import { SecurityCard } from '@/components/settings/SecurityCard'
 import { AlertsCard } from '@/components/settings/AlertsCard'
 import { MapProviderCard } from '@/components/settings/MapProviderCard'
+import { LightingCard } from '@/components/settings/LightingCard'
 import { APP_VERSION } from '@/shared'
 
 export default function SettingsPage() {
@@ -17,6 +18,9 @@ export default function SettingsPage() {
           <AlertsCard />
           <div className="md:col-span-2">
             <MapProviderCard />
+          </div>
+          <div className="md:col-span-2">
+            <LightingCard />
           </div>
         </div>
         <footer className="py-8 text-center text-xs text-text-muted">{APP_VERSION}</footer>
